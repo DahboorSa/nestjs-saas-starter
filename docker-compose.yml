@@ -1,0 +1,60 @@
+version: '3.8'
+services:
+  saas-service:
+    ports:
+      - '3000:3000'
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - APP_NAME=nestjs-saas-starter
+    command: yarn run start:dev
+    environment:
+      - POSTGRES_HOST=saas-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=saas_user
+      - POSTGRES_PASSWORD=saas_password
+      - POSTGRES_DB=saas_dev
+      - REDIS_HOST=saas-redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+    depends_on:
+      saas-db:
+        condition: service_healthy # wait for DB to be healthy before starting the service
+      saas-redis:
+        condition: service_healthy # wait for Redis to be healthy before starting the service
+    restart: unless-stopped
+  saas-db:
+    image: postgres:13.2-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=saas_user
+      - POSTGRES_PASSWORD=saas_password
+      - POSTGRES_DB=saas_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U saas_user -d saas_dev']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  saas-redis:
+    image: redis:6.2-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+volumes:
+  postgres_data:
+  redis_data:
