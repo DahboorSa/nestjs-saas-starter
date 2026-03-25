@@ -86,8 +86,7 @@
     "glob": "^10.5.0",
     "tmp": "^0.2.4",
     "webpack": "^5.104.1",
-    "flatted": "^3.4.2",
-    "ajv": "^8.18.0"
+    "flatted": "^3.4.2"
   },
   "jest": {
     "moduleFileExtensions": [
