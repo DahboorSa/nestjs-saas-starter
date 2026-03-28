@@ -16,6 +16,25 @@ export class WebhookService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
+  private audit(
+    auditContext: AuditContextDto,
+    action: AuditAction,
+    resourceId: string,
+    metadata: Record<string, any>,
+  ) {
+    this.auditLogService
+      .create({
+        ...auditContext,
+        action,
+        resourceType: AuditResourceType.WEBHOOK,
+        resourceId,
+        metadata,
+      })
+      .catch(() => {
+        this.logger.error('Failed to create audit log');
+      });
+  }
+
   private mapWebhookData(
     webhook: WebhookEndpointEntity,
   ): Partial<WebhookEndpointEntity> {
@@ -69,20 +88,10 @@ export class WebhookService {
     });
     const webhook = await this.webhookEndpointRepository.save(webhookData);
 
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.WEBHOOK_CREATED,
-        resourceType: AuditResourceType.WEBHOOK,
-        resourceId: webhook.id,
-        metadata: {
-          url: webhook.url,
-          events: webhook.events,
-        },
-      })
-      .catch(() => {
-        this.logger.error('Failed to create audit log');
-      });
+    this.audit(auditContext, AuditAction.WEBHOOK_CREATED, webhook.id, {
+      url: webhook.url,
+      events: webhook.events,
+    });
     return {
       ...this.mapWebhookData(webhook),
       secret,
@@ -114,19 +123,9 @@ export class WebhookService {
     });
     const webhookUpdated = await this.webhookEndpointRepository.save(webhook);
 
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.WEBHOOK_DELETED,
-        resourceType: AuditResourceType.WEBHOOK,
-        resourceId: webhook.id,
-        metadata: {
-          url: webhook.url,
-        },
-      })
-      .catch(() => {
-        this.logger.error('Failed to create audit log');
-      });
+    this.audit(auditContext, AuditAction.WEBHOOK_DELETED, webhook.id, {
+      url: webhook.url,
+    });
     return this.mapWebhookData(webhookUpdated);
   }
 }

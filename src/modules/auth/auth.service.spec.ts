@@ -37,7 +37,7 @@ const mockEmailQueueService = { add: jest.fn() };
 const mockConfigService = { get: jest.fn().mockReturnValue(604800) };
 const mockUtilityService = { generateSlug: jest.fn() };
 const mockJwtUtilityService = {
-  generateToken: jest.fn().mockReturnValue({
+  issueTokenPair: jest.fn().mockResolvedValue({
     accessToken: 'access-token',
     refreshToken: 'refresh-token',
   }),
@@ -54,7 +54,7 @@ describe('AuthService', () => {
     jest.clearAllMocks();
     mockAuditLogService.create.mockResolvedValue(undefined);
     mockConfigService.get.mockReturnValue(604800);
-    mockJwtUtilityService.generateToken.mockReturnValue({
+    mockJwtUtilityService.issueTokenPair.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });

@@ -2,66 +2,73 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import * as Nodemailer from 'nodemailer';
 import { MailtrapTransport } from 'mailtrap';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+type EmailTemplate = (data: any) => { subject: string; text: string };
+
+const buildTemplates = (baseUrl: string): Record<string, EmailTemplate> => ({
+  'welcome.email': ({ token }) => ({
+    subject: 'One Step Closer to SaaS! Please verify your email',
+    text: `Please click the link below to verify your email address:\n${baseUrl}/auth/verify-email?token=${token}`,
+  }),
+  'resend-verify.email': ({ token }) => ({
+    subject: 'One Step Closer to SaaS! Please verify your email',
+    text: `Please click the link below to verify your email address:\n${baseUrl}/auth/verify-email?token=${token}`,
+  }),
+  'invite.email': ({ token, orgName, inviterName, inviterEmail }) => ({
+    subject: `You have been invited to join ${orgName}`,
+    text: `${inviterName} ${inviterEmail} invited you to join ${orgName} as a member.\nAccept invitation: ${baseUrl}/invitations/accept?token=${token}\nThis link expires in 48 hours.`,
+  }),
+  'forgot-password.email': ({ token }) => ({
+    subject: 'Reset your password',
+    text: `Please click the link below to reset your password:\n${baseUrl}/auth/reset-password?token=${token}`,
+  }),
+  'change-email.email': ({ token }) => ({
+    subject: 'Change your email address',
+    text: `Please click the link below to confirm your email address:\n${baseUrl}/users/me/email/confirm?token=${token}`,
+  }),
+});
+
+@Injectable()
 @Processor('emailQueue')
 export class EmailProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailProcessor.name);
+  private readonly templates: Record<string, EmailTemplate>;
+
+  constructor(private readonly configService: ConfigService) {
+    super();
+    this.templates = buildTemplates(this.configService.get<string>('URL_PATH'));
+  }
+
   async process(job: Job<any>) {
     try {
       const mailtrap = Nodemailer.createTransport(
         MailtrapTransport({
-          token: process.env.MAILTRAP_API_KEY,
+          token: this.configService.get<string>('MAILTRAP_API_KEY'),
           sandbox: true,
-          testInboxId: +process.env.MAILTRAP_TEST_INBOX_ID,
+          testInboxId: +this.configService.get<number>(
+            'MAILTRAP_TEST_INBOX_ID',
+          ),
         }),
       );
       const { data } = job;
-      const { email, token, userId } = data;
+      const { email, userId } = data;
       this.logger.log(
-        `Processing job ${job.id} of type ${job.name} for user ${data.userId}`,
+        `Processing job ${job.id} of type ${job.name} for user ${userId}`,
       );
-      let subject = '';
-      let text = '';
-      switch (job.name) {
-        case 'welcome.email':
-        case 'resend-verify.email':
-          subject = 'One Step Closer to SaaS! Please verify your email';
-          text = `
-            Please click the link below to verify your email address:
-            ${process.env.URL_PATH}/auth/verify-email?token=${token}
-          `;
-          break;
-        case 'invite.email':
-          const { orgName, inviterName, inviterEmail } = data;
-          subject = `You have been invited to join ${orgName}`;
-          text = ` ${inviterName} ${inviterEmail} invited you to join ${orgName} as a member.
-                Accept invitation: ${process.env.URL_PATH}/invitations/accept?token=${token}
-                This link expires in 48 hours.`;
-          break;
-        case 'forgot-password.email':
-          subject = 'Reset your password';
-          text = `
-            Please click the link below to reset your password:
-            ${process.env.URL_PATH}/auth/reset-password?token=${token}
-          `;
-          break;
-        case 'change-email.email':
-          subject = 'Change your email address';
-          text = `
-            Please click the link below to confirm your email address:
-            ${process.env.URL_PATH}/users/me/email/confirm?token=${token}
-          `;
-          break;
-        default:
-          break;
+
+      const template = this.templates[job.name];
+      if (!template) {
+        this.logger.warn(`No email template found for job type: ${job.name}`);
+        return;
       }
-      //Email system implemented with environment-based configuration (Ethereal in dev, production-ready SMTP integration
-      this.logger.log('Sending email....', subject, text, email);
+      const { subject, text } = template(data);
+
       await mailtrap.sendMail({
         from: {
-          address: process.env.MAILTRAP_FROM_EMAIL,
-          name: process.env.MAILTRAP_FROM_NAME,
+          address: this.configService.get<string>('MAILTRAP_FROM_EMAIL'),
+          name: this.configService.get<string>('MAILTRAP_FROM_NAME'),
         },
         to: [email],
         subject,

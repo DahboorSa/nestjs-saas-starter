@@ -48,6 +48,27 @@ export class AuthService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
+  private audit(
+    auditContext: AuditContextDto,
+    action: AuditAction,
+    user: UserEntity,
+    organization: OrganizationEntity,
+  ) {
+    const { id: userId } = user;
+    this.auditLogService
+      .create({
+        ...auditContext,
+        action,
+        resourceType: AuditResourceType.USER,
+        resourceId: userId,
+        user,
+        organization,
+      })
+      .catch(() => {
+        this.logger.error('Error creating audit');
+      });
+  }
+
   async register(auditContext: AuditContextDto, body: RegisterDto) {
     let slug = this.utilityService.generateSlug(body.name);
 
@@ -102,18 +123,7 @@ export class AuthService {
           email: body.email,
           userId: user.id,
         });
-        this.auditLogService
-          .create({
-            ...auditContext,
-            action: AuditAction.USER_REGISTER,
-            resourceType: AuditResourceType.USER,
-            resourceId: user.id,
-            user,
-            organization,
-          })
-          .catch((error) => {
-            this.logger.error('Failed to create audit log', error);
-          });
+        this.audit(auditContext, AuditAction.USER_REGISTER, user, organization);
         return {
           message: 'Registration successful. Please verify your email.',
           organizationId: organization.id,
@@ -138,18 +148,9 @@ export class AuthService {
       isVerified: true,
     });
     await this.cacheService.delete(key);
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.AUTH_VERIFY_EMAIL,
-        resourceType: AuditResourceType.USER,
-        resourceId: userId,
-        user,
-        organization: { id: orgId } as OrganizationEntity,
-      })
-      .catch((error) => {
-        this.logger.error('Failed to create audit log', error);
-      });
+    this.audit(auditContext, AuditAction.AUTH_VERIFY_EMAIL, user, {
+      id: orgId,
+    } as OrganizationEntity);
     return {
       message: 'Email verified successfully',
       userId,
@@ -177,27 +178,11 @@ export class AuthService {
       email: user.email,
     };
     const { accessToken, refreshToken } =
-      this.jwtUtilityService.generateToken(payload);
-    await this.cacheService.set(
-      `auth:refresh:${user.id}`,
-      refreshToken,
-      this.configService.get<number>('jwt.jwtRefreshRedisExpiry'),
-    );
+      await this.jwtUtilityService.issueTokenPair(payload);
 
     await this.userService.updateLastLogin(user.id);
 
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.AUTH_LOGIN,
-        resourceType: AuditResourceType.USER,
-        resourceId: user.id,
-        user,
-        organization: user.organization,
-      })
-      .catch((error) => {
-        this.logger.error('Failed to create audit log', error);
-      });
+    this.audit(auditContext, AuditAction.AUTH_LOGIN, user, user.organization);
     return {
       accessToken,
       refreshToken,
@@ -229,25 +214,14 @@ export class AuthService {
       email,
     };
     const { accessToken, refreshToken } =
-      this.jwtUtilityService.generateToken(payload);
-    await this.cacheService.set(
-      `auth:refresh:${userId}`,
-      refreshToken,
-      this.configService.get<number>('jwt.jwtRefreshRedisExpiry'),
-    );
+      await this.jwtUtilityService.issueTokenPair(payload);
 
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.AUTH_REFRESH,
-        resourceType: AuditResourceType.USER,
-        resourceId: userId,
-        user: existingUser,
-        organization: existingUser.organization,
-      })
-      .catch((error) => {
-        this.logger.error('Failed to create audit log', error);
-      });
+    this.audit(
+      auditContext,
+      AuditAction.AUTH_REFRESH,
+      existingUser,
+      existingUser.organization,
+    );
 
     return {
       accessToken,
@@ -295,27 +269,16 @@ export class AuthService {
       email: user.email,
     };
     const { accessToken, refreshToken } =
-      this.jwtUtilityService.generateToken(payload);
-    await this.cacheService.set(
-      `auth:refresh:${userInfo.id}`,
-      refreshToken,
-      this.configService.get<number>('jwt.jwtRefreshRedisExpiry'),
-    );
+      await this.jwtUtilityService.issueTokenPair(payload);
 
     await this.userService.updateLastLogin(userInfo.id);
 
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.AUTH_CHANGE_PASSWORD,
-        resourceType: AuditResourceType.USER,
-        resourceId: userInfo.id,
-        user: userInfo,
-        organization: userInfo.organization,
-      })
-      .catch((error) => {
-        this.logger.error('Failed to create audit log', error);
-      });
+    this.audit(
+      auditContext,
+      AuditAction.AUTH_CHANGE_PASSWORD,
+      userInfo,
+      userInfo.organization,
+    );
     return {
       accessToken,
       refreshToken,
@@ -340,18 +303,12 @@ export class AuthService {
         userId: user.id,
         email: body.email,
       });
-      this.auditLogService
-        .create({
-          ...auditContext,
-          action: AuditAction.AUTH_FORGOT_PASSWORD,
-          resourceType: AuditResourceType.USER,
-          resourceId: user.id,
-          user,
-          organization: user.organization,
-        })
-        .catch((error) => {
-          this.logger.error('Failed to create audit log', error);
-        });
+      this.audit(
+        auditContext,
+        AuditAction.AUTH_FORGOT_PASSWORD,
+        user,
+        user.organization,
+      );
     }
     return {
       message:
@@ -396,25 +353,14 @@ export class AuthService {
       email,
     };
     const { accessToken, refreshToken } =
-      this.jwtUtilityService.generateToken(payload);
-    await this.cacheService.set(
-      `auth:refresh:${userId}`,
-      refreshToken,
-      this.configService.get<number>('jwt.jwtRefreshRedisExpiry'),
-    );
+      await this.jwtUtilityService.issueTokenPair(payload);
 
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.AUTH_RESET_PASSWORD,
-        resourceType: AuditResourceType.USER,
-        resourceId: userId,
-        user: existingUser,
-        organization: existingUser.organization,
-      })
-      .catch((error) => {
-        this.logger.error('Failed to create audit log', error);
-      });
+    this.audit(
+      auditContext,
+      AuditAction.AUTH_RESET_PASSWORD,
+      existingUser,
+      existingUser.organization,
+    );
     await this.cacheService.delete(`reset:password:${token}`);
     return {
       accessToken,
@@ -443,18 +389,13 @@ export class AuthService {
         email,
         userId: user.id,
       });
-      this.auditLogService
-        .create({
-          ...auditContext,
-          action: AuditAction.AUTH_RESEND_VERIFY_EMAIL,
-          resourceType: AuditResourceType.USER,
-          resourceId: user.id,
-          user,
-          organization,
-        })
-        .catch((error) => {
-          this.logger.error('Failed to create audit log', error);
-        });
+
+      this.audit(
+        auditContext,
+        AuditAction.AUTH_RESEND_VERIFY_EMAIL,
+        user,
+        organization,
+      );
     }
     return {
       message:
@@ -468,18 +409,13 @@ export class AuthService {
     const ttl = user.expiresIn - Math.floor(Date.now() / 1000);
     if (ttl > 0)
       await this.cacheService.set(`auth:blacklist:${token}`, '1', ttl);
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.AUTH_LOGOUT,
-        resourceType: AuditResourceType.USER,
-        resourceId: userId,
-        user: { id: userId } as UserEntity,
-        organization: { id: orgId } as OrganizationEntity,
-      })
-      .catch((error) => {
-        this.logger.error('Failed to create audit log', error);
-      });
+
+    this.audit(
+      auditContext,
+      AuditAction.AUTH_LOGOUT,
+      { id: userId } as UserEntity,
+      { id: orgId } as OrganizationEntity,
+    );
     return { message: 'Logged out successfully' };
   }
 }
