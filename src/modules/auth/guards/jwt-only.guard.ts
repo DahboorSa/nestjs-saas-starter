@@ -1,10 +1,14 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JWT_ONLY } from '../decorator';
 
 @Injectable()
 export class JwtOnlyGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private readonly configService: ConfigService,
+  ) {}
 
   canActivate(context: ExecutionContext) {
     const requiredJwt = this.reflector.getAllAndOverride(JWT_ONLY, [
@@ -16,7 +20,9 @@ export class JwtOnlyGuard implements CanActivate {
     const token = contextInfo?.headers?.authorization?.split(' ')[1];
 
     return (
-      requiredJwt && token && !token.startsWith(process.env.API_KEY_PREFIX)
+      requiredJwt &&
+      token &&
+      !token.startsWith(this.configService.get<string>('API_KEY_PREFIX'))
     );
   }
 }

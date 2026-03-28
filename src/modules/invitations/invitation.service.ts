@@ -25,6 +25,7 @@ import { UserService } from '../users/user.service';
 import * as argon from 'argon2';
 import { OrganizationService } from '../organizations/organization.service';
 import { OrganizationEntity } from '../organizations/entities/organization.entity';
+import { UserEntity } from '../users/entities/user.entity';
 import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
 import { AuditLogService } from '../audit-logs/audit-log.service';
 import { WebhookDispatcherService } from '../webhook-dispatchers/webhook-dispatcher.service';
@@ -44,6 +45,37 @@ export class InvitationService {
     private readonly auditLogService: AuditLogService,
     private readonly dispatcher: WebhookDispatcherService,
   ) {}
+  private auditAndDispatch(
+    auditContext: AuditContextDto,
+    action: AuditAction,
+    webhookEvent: WebhookEvent,
+    orgId: string,
+    resourceId: string,
+    organization: OrganizationEntity,
+    webhookPayload: Record<string, any>,
+    user?: UserEntity,
+    metadata?: Record<string, any>,
+  ) {
+    this.auditLogService
+      .create({
+        ...auditContext,
+        action,
+        resourceType: AuditResourceType.USER,
+        resourceId,
+        organization,
+        ...(user && { user }),
+        ...(metadata && { metadata }),
+      })
+      .catch(() => {
+        this.logger.error('Error creating audit log');
+      });
+    this.dispatcher
+      .dispatch(orgId, webhookEvent, webhookPayload)
+      .catch((error) => {
+        this.logger.error('Error dispatching webhook', error);
+      });
+  }
+
   async getPendingInvitationByEmail(email: string): Promise<InvitationEntity> {
     return await this.invitationRepository.findOne({
       where: { email, status: InvitationStatus.PENDING },
@@ -123,27 +155,15 @@ export class InvitationService {
       token,
     });
 
-    this.dispatcher
-      .dispatch(orgId, WebhookEvent.MEMBER_INVITED, {
-        invitedEmail: email,
-        role: body.role,
-        invitedBy: user.email,
-      })
-      .catch((error) => {
-        this.logger.error('Error dispatching webhook', error);
-      });
-
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.MEMBER_INVITED,
-        resourceType: AuditResourceType.USER,
-        resourceId: invitationId.toString(),
-        organization,
-      })
-      .catch(() => {
-        this.logger.error('Error creating audit log for member invited');
-      });
+    this.auditAndDispatch(
+      auditContext,
+      AuditAction.MEMBER_INVITED,
+      WebhookEvent.MEMBER_INVITED,
+      orgId,
+      invitationId.toString(),
+      organization,
+      { invitedEmail: email, role: body.role, invitedBy: user.email },
+    );
 
     return {
       message: 'Invitation sent successfully',
@@ -246,7 +266,7 @@ export class InvitationService {
       email: user.email,
     };
     const { accessToken, refreshToken } =
-      this.jwtUtilityService.generateToken(payload);
+      await this.jwtUtilityService.issueTokenPair(payload);
 
     const updatedInvitation = await this.invitationRepository.preload({
       id: invitationId,
@@ -254,38 +274,19 @@ export class InvitationService {
     });
 
     await this.invitationRepository.save(updatedInvitation);
-
-    await this.cacheService.set(
-      `auth:refresh:${user.id}`,
-      refreshToken,
-      this.configService.get<number>('jwt.jwtRefreshRedisExpiry'),
-    );
     await this.cacheService.delete(`invite:${token}`);
 
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.MEMBER_INVITE_ACCEPTED,
-        resourceType: AuditResourceType.USER,
-        resourceId: invitationId.toString(),
-        user,
-        organization,
-        metadata: payload,
-      })
-      .catch(() => {
-        this.logger.error(
-          'Error creating audit log for member invite accepted',
-        );
-      });
-
-    this.dispatcher
-      .dispatch(orgId, WebhookEvent.MEMBER_INVITE_ACCEPTED, {
-        email,
-        userId: user.id,
-      })
-      .catch((error) => {
-        this.logger.error('Error dispatching webhook', error);
-      });
+    this.auditAndDispatch(
+      auditContext,
+      AuditAction.MEMBER_INVITE_ACCEPTED,
+      WebhookEvent.MEMBER_INVITE_ACCEPTED,
+      orgId,
+      invitationId.toString(),
+      organization,
+      { email, userId: user.id },
+      user,
+      payload,
+    );
     return {
       accessToken,
       refreshToken,

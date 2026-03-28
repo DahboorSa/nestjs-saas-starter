@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-custom';
 import { Request } from 'express';
@@ -10,6 +11,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
   constructor(
     private readonly apiKeyService: ApiKeyService,
     private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
   ) {
     super();
   }
@@ -19,7 +21,10 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
     if (!authHeader) return null;
 
     const token = authHeader?.split(' ')?.[1] as string;
-    if (!token || !token.startsWith(process.env.API_KEY_PREFIX)) {
+    if (
+      !token ||
+      !token.startsWith(this.configService.get<string>('API_KEY_PREFIX'))
+    ) {
       return null;
     }
 

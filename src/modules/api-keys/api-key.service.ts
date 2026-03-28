@@ -47,6 +47,34 @@ export class ApiKeyService {
     private readonly dispatcher: WebhookDispatcherService,
   ) {}
 
+  private auditAndDispatch(
+    auditContext: AuditContextDto,
+    action: AuditAction,
+    webhookEvent: WebhookEvent,
+    orgId: string,
+    apiKey: ApiKeyEntity,
+    webhookPayload: Record<string, any>,
+    organization?: ApiKeyEntity['organization'],
+  ) {
+    this.auditLogService
+      .create({
+        ...auditContext,
+        action,
+        resourceType: AuditResourceType.API_KEY,
+        resourceId: apiKey.id.toString(),
+        apiKey,
+        ...(organization && { organization }),
+      })
+      .catch(() => {
+        this.logger.error('Failed to create audit log');
+      });
+    this.dispatcher
+      .dispatch(orgId, webhookEvent, webhookPayload)
+      .catch((error) => {
+        this.logger.error('Error dispatching webhook', error);
+      });
+  }
+
   private mapApiKeyData(key: ApiKeyEntity): Partial<ApiKeyResponse> {
     return {
       id: key.id,
@@ -124,26 +152,15 @@ export class ApiKeyService {
       }),
       +this.configService.get('API_KEY_EXPIRATION'),
     );
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.API_KEY_CREATED,
-        resourceType: AuditResourceType.API_KEY,
-        resourceId: apiKeyInfo.id.toString(),
-        apiKey: apiKeyInfo,
-        organization,
-      })
-      .catch(() => {
-        this.logger.error('Failed to create audit log');
-      });
-    this.dispatcher
-      .dispatch(userInfo.orgId, WebhookEvent.API_KEY_CREATED, {
-        keyPrefix,
-        name: body.name,
-      })
-      .catch((error) => {
-        this.logger.error('Error dispatching webhook', error);
-      });
+    this.auditAndDispatch(
+      auditContext,
+      AuditAction.API_KEY_CREATED,
+      WebhookEvent.API_KEY_CREATED,
+      userInfo.orgId,
+      apiKeyInfo,
+      { keyPrefix, name: body.name },
+      organization,
+    );
     return {
       message: 'Save this key — it will never be shown again !!',
       ...body,
@@ -173,25 +190,14 @@ export class ApiKeyService {
     const keyUpdated = await this.apiKeyRepository.save(apiKey);
     const hashedApiKey = keyUpdated.keyHash;
     await this.cacheService.delete(`apikey:valid:${hashedApiKey}`);
-    this.auditLogService
-      .create({
-        ...auditContext,
-        action: AuditAction.API_KEY_REVOKED,
-        resourceType: AuditResourceType.API_KEY,
-        resourceId: apiKey.id.toString(),
-        apiKey: keyUpdated,
-      })
-      .catch(() => {
-        this.logger.error('Failed to create audit log');
-      });
-    this.dispatcher
-      .dispatch(userInfo.orgId, WebhookEvent.API_KEY_REVOKED, {
-        keyPrefix: keyUpdated.keyPrefix,
-        name: keyUpdated.name,
-      })
-      .catch((error) => {
-        this.logger.error('Error dispatching webhook', error);
-      });
+    this.auditAndDispatch(
+      auditContext,
+      AuditAction.API_KEY_REVOKED,
+      WebhookEvent.API_KEY_REVOKED,
+      userInfo.orgId,
+      keyUpdated,
+      { keyPrefix: keyUpdated.keyPrefix, name: keyUpdated.name },
+    );
     return this.mapApiKeyData(keyUpdated);
   }
 }

@@ -32,7 +32,7 @@ const mockAuditLogService = { create: jest.fn().mockResolvedValue(undefined) };
 const mockDispatcher = { dispatch: jest.fn().mockResolvedValue(undefined) };
 const mockEmailQueue = { add: jest.fn().mockResolvedValue(undefined) };
 const mockJwtUtilityService = {
-  generateToken: jest.fn().mockReturnValue({
+  issueTokenPair: jest.fn().mockResolvedValue({
     accessToken: 'access-token',
     refreshToken: 'refresh-token',
   }),

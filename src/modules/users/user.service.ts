@@ -317,13 +317,7 @@ export class UserService {
       email,
     };
     const { accessToken, refreshToken } =
-      this.jwtUtilityService.generateToken(payload);
-
-    await this.cacheService.set(
-      `auth:refresh:${userId}`,
-      refreshToken,
-      this.configService.get<number>('jwt.jwtRefreshRedisExpiry'),
-    );
+      await this.jwtUtilityService.issueTokenPair(payload);
 
     this.auditAndDispatch(
       orgId,
