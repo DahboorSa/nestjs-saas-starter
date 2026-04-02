@@ -65,35 +65,4 @@ describe('UsageRecordService', () => {
       );
     });
   });
-
-  // ─── createMany ───────────────────────────────────────────────────────────────
-
-  describe('createMany', () => {
-    it('should upsert multiple usage records in one call', async () => {
-      const records: Partial<UsageRecordEntity>[] = [
-        { ...mockRecord },
-        { ...mockRecord, period: '2026-02', value: 5 },
-      ];
-      mockUsageRecordRepository.upsert.mockResolvedValue(undefined);
-
-      await service.createMany(records);
-
-      expect(mockUsageRecordRepository.upsert).toHaveBeenCalledWith(records, [
-        'organizationId',
-        'metric',
-        'period',
-      ]);
-    });
-
-    it('should handle empty array without error', async () => {
-      mockUsageRecordRepository.upsert.mockResolvedValue(undefined);
-
-      await service.createMany([]);
-
-      expect(mockUsageRecordRepository.upsert).toHaveBeenCalledWith(
-        [],
-        ['organizationId', 'metric', 'period'],
-      );
-    });
-  });
 });

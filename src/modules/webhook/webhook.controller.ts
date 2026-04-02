@@ -8,7 +8,12 @@ import {
   Param,
 } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
-import { AuditContext, CurrentUser, JwtOnly, Roles } from '../auth/decorator';
+import {
+  AuditContext,
+  CurrentUser,
+  JwtOnly,
+  Roles,
+} from '../../common/decorators';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import { UserRole } from '../../enums';
 import { CreateWebhookDto } from './dto/create-webhook.dto';

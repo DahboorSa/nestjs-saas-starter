@@ -17,7 +17,12 @@ import {
   ResendVerifyEmailDto,
 } from './dto';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
-import { AuditContext, CurrentUser, JwtOnly, Public } from '../auth/decorator';
+import {
+  AuditContext,
+  CurrentUser,
+  JwtOnly,
+  Public,
+} from '../../common/decorators';
 import { Throttle } from '@nestjs/throttler';
 
 @Throttle({ auth: {} })

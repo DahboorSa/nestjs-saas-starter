@@ -34,6 +34,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
     if (cached) {
       const payload = JSON.parse(cached);
       if (payload) {
+        this.apiKeyService.updateLastUsed(payload.id).catch(() => {});
         return {
           orgId: payload.orgId,
           scopes: payload.scopes,
@@ -46,6 +47,9 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
     if (!apiKey) throw new UnauthorizedException('Invalid API key');
     if (!apiKey.isActive)
       throw new UnauthorizedException('API key has been deactivated');
+    if (apiKey.expiresAt && new Date(apiKey.expiresAt) < new Date())
+      throw new UnauthorizedException('API key has expired');
+    this.apiKeyService.updateLastUsed(apiKey.id).catch(() => {});
     return {
       orgId: apiKey?.orgId,
       scopes: apiKey?.scopes,

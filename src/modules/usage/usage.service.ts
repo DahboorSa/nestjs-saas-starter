@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../../cache/cache.service';
 import { OrganizationEntity } from '../organizations/entities/organization.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WebhookDispatcherService } from '../webhook-dispatchers/webhook-dispatcher.service';
-import { WebhookEvent } from '../../enums';
+import { UsageMetric, WebhookEvent } from '../../enums';
+import { UtilityService } from '../../common/utils/utility.service';
 
 @Injectable()
 export class UsageService {
@@ -13,6 +15,8 @@ export class UsageService {
     private readonly organizationRepository: Repository<OrganizationEntity>,
     private readonly cacheService: CacheService,
     private readonly dispatcher: WebhookDispatcherService,
+    private readonly configService: ConfigService,
+    private readonly utilityService: UtilityService,
   ) {}
 
   async incrementUsage(
@@ -58,6 +62,24 @@ export class UsageService {
       .catch(() => {});
   }
 
+  async getStats(orgId: string) {
+    const period = this.utilityService.formatYYMM(new Date());
+    const [current, { apiCallsPerMonth: limit }, limitExceeded] =
+      await Promise.all([
+        this.getUsage(orgId, UsageMetric.API_CALLS, period),
+        this.getPlanLimit(orgId),
+        this.isLimitExceeded(orgId),
+      ]);
+    return {
+      period,
+      apiCalls: {
+        current,
+        limit,
+        limitExceeded,
+      },
+    };
+  }
+
   async getPlanLimit(orgId: string): Promise<{
     apiCallsPerMonth: number;
     maxWebhooks: number;
@@ -78,7 +100,7 @@ export class UsageService {
     await this.cacheService.set(
       `usage:${orgId}:limit`,
       JSON.stringify({ apiCallsPerMonth, maxWebhooks, planId: plan.id }),
-      +process.env.TTL_EXPIRATION,
+      this.configService.get<number>('TTL_EXPIRATION'),
     );
     return { apiCallsPerMonth, maxWebhooks, planId: plan.id };
   }

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { from, map, Observable, switchMap } from 'rxjs';
-import { IS_PUBLIC_KEY } from '../../modules/auth/decorator';
+import { IS_PUBLIC_KEY, SKIP_USAGE_TRACKING_KEY } from '../decorators';
 import { UsageService } from '../../modules/usage/usage.service';
 import { UtilityService } from '../utils/utility.service';
 import { AuditAction, AuditResourceType, UsageMetric } from '../../enums';
@@ -64,8 +64,12 @@ export class UsageTrackerInterceptor implements NestInterceptor {
       context.getHandler(),
       context.getClass(),
     ]);
+    const skipUsageTracking = this.reflector.getAllAndOverride(
+      SKIP_USAGE_TRACKING_KEY,
+      [context.getHandler(), context.getClass()],
+    );
     const contextInfo = context.switchToHttp().getRequest();
-    if (isPublic) {
+    if (isPublic || skipUsageTracking) {
       this.logger.log(
         `skipping usage tracker for public route: [${contextInfo.method}] ${contextInfo.url}`,
       );
