@@ -193,11 +193,12 @@ npx madge --circular src/main.ts
 
 ### Webhooks — `/webhooks`
 
-| Method | Endpoint        | Access                | Description             |
-| ------ | --------------- | --------------------- | ----------------------- |
-| GET    | `/webhooks`     | Authenticated         | List webhook endpoints  |
-| POST   | `/webhooks`     | JWT only, Owner/Admin | Create webhook endpoint |
-| DELETE | `/webhooks/:id` | JWT only, Owner/Admin | Delete webhook endpoint |
+| Method | Endpoint                    | Access                | Description                        |
+| ------ | --------------------------- | --------------------- | ---------------------------------- |
+| GET    | `/webhooks`                 | Authenticated         | List webhook endpoints             |
+| POST   | `/webhooks`                 | JWT only, Owner/Admin | Create webhook endpoint            |
+| DELETE | `/webhooks/:id`             | JWT only, Owner/Admin | Delete webhook endpoint            |
+| GET    | `/webhooks/:id/deliveries`  | JWT only, Owner/Admin | List delivery history for endpoint |
 
 ### Usage — `/usage`
 
@@ -399,8 +400,8 @@ src/
 
 #### Webhooks
 
-- [ ] `GET /webhooks/:id/deliveries` — delivery history endpoint
-- [ ] Missing events: `plan.upgraded`, `plan.downgraded`, `member.invited`, `api.limit_exceeded`
+- [x] `GET /webhooks/:id/deliveries` — delivery history endpoint
+- [ ] Missing events: `plan.upgraded`, `plan.downgraded`, `api.limit_exceeded`
 
 #### Usage & Observability
 

@@ -58,7 +58,7 @@ export class WebhookProcessor extends WorkerHost {
         }),
       );
 
-      await this.webhookDeliveryService.create(orgId, webhookEndpointId, {
+      await this.webhookDeliveryService.create(webhookEndpointId, orgId, {
         event,
         payload: data.payload,
         status: DeliveryStatus.SUCCESS,
@@ -70,7 +70,7 @@ export class WebhookProcessor extends WorkerHost {
       const statusCode = isAxiosError(error)
         ? (error.response?.status ?? null)
         : null;
-      await this.webhookDeliveryService.create(orgId, webhookEndpointId, {
+      await this.webhookDeliveryService.create(webhookEndpointId, orgId, {
         event,
         payload: data.payload,
         status: DeliveryStatus.FAILED,

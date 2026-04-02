@@ -19,7 +19,6 @@ const mockWebhookRepository = {
 const mockAuditLogService = { create: jest.fn().mockResolvedValue(undefined) };
 
 const auditContext = { ipAddress: '127.0.0.1', userAgent: 'jest' } as any;
-const userInfo = { userId: 'user-1', orgId: 'org-1' } as any;
 
 const mockWebhook: Partial<WebhookEndpointEntity> = {
   id: 'webhook-1',
@@ -96,7 +95,7 @@ describe('WebhookService', () => {
       mockWebhookRepository.create.mockReturnValue(mockWebhook);
       mockWebhookRepository.save.mockResolvedValue(mockWebhook);
 
-      const result = await service.create(auditContext, userInfo, body);
+      const result = await service.create(auditContext, body);
 
       expect(result).toMatchObject({
         id: 'webhook-1',
@@ -115,7 +114,7 @@ describe('WebhookService', () => {
       mockWebhookRepository.create.mockReturnValue(mockWebhook);
       mockWebhookRepository.save.mockResolvedValue(mockWebhook);
 
-      await service.create(auditContext, userInfo, body);
+      await service.create(auditContext, body);
 
       await new Promise(process.nextTick);
       expect(mockAuditLogService.create).toHaveBeenCalled();
@@ -143,9 +142,9 @@ describe('WebhookService', () => {
     it('should throw NotFoundException if webhook not found', async () => {
       mockWebhookRepository.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        service.remove(auditContext, userInfo, 'webhook-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.remove(auditContext, 'webhook-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw NotFoundException if webhook already removed', async () => {
@@ -154,9 +153,9 @@ describe('WebhookService', () => {
         isActive: false,
       });
 
-      await expect(
-        service.remove(auditContext, userInfo, 'webhook-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.remove(auditContext, 'webhook-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should deactivate webhook and return mapped data', async () => {
@@ -167,7 +166,7 @@ describe('WebhookService', () => {
         isActive: false,
       });
 
-      const result = await service.remove(auditContext, userInfo, 'webhook-1');
+      const result = await service.remove(auditContext, 'webhook-1');
 
       expect(result).toMatchObject({ id: 'webhook-1', isActive: false });
       expect(result).not.toHaveProperty('secret');
