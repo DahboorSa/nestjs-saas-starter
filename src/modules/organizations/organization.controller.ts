@@ -1,6 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Put } from '@nestjs/common';
 import { OrganizationService } from './organization.service';
-import { AuditContext, CurrentUser, JwtOnly, Roles } from '../auth/decorator';
+import {
+  AuditContext,
+  CurrentUser,
+  JwtOnly,
+  Roles,
+} from '../../common/decorators';
 import { UserInfoDto } from '../../common/dto';
 import { UpdateOrganizationDto } from './dto';
 import { UserRole } from '../../enums';

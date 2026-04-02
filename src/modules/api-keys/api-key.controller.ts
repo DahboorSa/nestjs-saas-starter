@@ -9,7 +9,12 @@ import {
 } from '@nestjs/common';
 import { ApiKeyService } from './api-key.service';
 import { UserRole } from '../../enums';
-import { AuditContext, CurrentUser, JwtOnly, Roles } from '../auth/decorator';
+import {
+  AuditContext,
+  CurrentUser,
+  JwtOnly,
+  Roles,
+} from '../../common/decorators';
 import { CreateApiKeyDto } from './dto';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 

@@ -88,6 +88,10 @@ export class ApiKeyService {
     };
   }
 
+  async updateLastUsed(id: number): Promise<void> {
+    await this.apiKeyRepository.update(id, { lastUsedAt: new Date() });
+  }
+
   hashKey(key: string): string {
     return createHash('sha256').update(key).digest('hex');
   }
@@ -148,6 +152,7 @@ export class ApiKeyService {
       `apikey:valid:${hashedApiKey}`,
       JSON.stringify({
         ...body,
+        id: apiKeyInfo.id,
         orgId: organization.id,
       }),
       +this.configService.get('API_KEY_EXPIRATION'),

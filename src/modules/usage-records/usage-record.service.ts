@@ -24,12 +24,4 @@ export class UsageRecordService {
       ['organizationId', 'metric', 'period'],
     );
   }
-
-  async createMany(usageRecords: Partial<UsageRecordEntity>[]): Promise<void> {
-    await this.usageRecordRepository.upsert(usageRecords, [
-      'organizationId',
-      'metric',
-      'period',
-    ]);
-  }
 }

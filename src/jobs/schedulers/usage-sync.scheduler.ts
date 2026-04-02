@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { QueryFailedError } from 'typeorm';
 import { CacheService } from '../../cache/cache.service';
 import { UsageRecordService } from '../../modules/usage-records/usage-record.service';
 import { UsageMetric } from '../../enums';
-import { UsageRecordEntity } from '../../modules/usage-records/entities/usage-record.entity';
-import { OrganizationEntity } from '../../modules/organizations/entities/organization.entity';
 
 @Injectable()
 export class UsageSyncScheduler {
@@ -21,39 +20,33 @@ export class UsageSyncScheduler {
     const keys = await this.cacheService.getByPattern(
       `usage:*:${UsageMetric.API_CALLS}:*`,
     );
-    const usageRecords: Partial<UsageRecordEntity>[] = [];
     for (const key of keys) {
       const usage = await this.cacheService.get(key);
       if (!usage) continue;
-      const organizationId = key.split(':')[1];
-      const metric = key.split(':')[2];
-      const period = key.split(':')[3];
-      try {
-        this.logger.log(
-          `organizationId: ${organizationId}, metrics: ${metric}, period: ${period}, usage: ${usage}`,
+      const [, orgId, metric, period] = key.split(':');
+      if (!Object.values(UsageMetric).includes(metric as UsageMetric)) {
+        this.logger.warn(
+          `Unknown metric "${metric}" in key "${key}", skipping`,
         );
-        if (!Object.values(UsageMetric).includes(metric as UsageMetric)) {
-          this.logger.warn(
-            `Unknown metric "${metric}" in key "${key}", skipping`,
-          );
-          continue;
-        }
-        usageRecords.push({
+        continue;
+      }
+      try {
+        await this.usageRecordService.create(orgId, {
           metric: metric as UsageMetric,
           period,
           value: +usage,
-          organization: { id: organizationId } as OrganizationEntity,
         });
-      } catch (e) {
-        this.logger.error(
-          `error creating usage record for organizationId: ${organizationId}, metrics: ${metric}, period: ${period}, usage: ${usage}
-          , error: ${e.message}`,
-          e.message,
-        );
+      } catch (error) {
+        if (
+          error instanceof QueryFailedError &&
+          (error as any).code === '23503' // Foreign key violation, likely due to org being deleted -- this should not happen often, but if it does, we should clean up the cache key to prevent repeated errors on subsequent runs
+        ) {
+          this.logger.warn(`Deleting stale cache key for unknown org: ${key}`);
+          await this.cacheService.delete(key);
+        } else {
+          this.logger.error(`Failed to sync usage for key: ${key}`, error);
+        }
       }
-    }
-    if (usageRecords.length > 0) {
-      await this.usageRecordService.createMany(usageRecords);
     }
     this.logger.log('Finished running scheduled job for usage sync records');
   }

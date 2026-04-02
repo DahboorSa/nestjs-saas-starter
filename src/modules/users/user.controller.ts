@@ -9,7 +9,12 @@ import {
   Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { AuditContext, CurrentUser, JwtOnly, Public } from '../auth/decorator';
+import {
+  AuditContext,
+  CurrentUser,
+  JwtOnly,
+  Public,
+} from '../../common/decorators';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import { UpdateUserDto, UpdateUserEmailDto } from './dto';
 

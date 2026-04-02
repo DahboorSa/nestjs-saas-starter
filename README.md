@@ -199,6 +199,12 @@ npx madge --circular src/main.ts
 | POST   | `/webhooks`     | JWT only, Owner/Admin | Create webhook endpoint |
 | DELETE | `/webhooks/:id` | JWT only, Owner/Admin | Delete webhook endpoint |
 
+### Usage — `/usage`
+
+| Method | Endpoint  | Access        | Description                                    |
+| ------ | --------- | ------------- | ---------------------------------------------- |
+| GET    | `/usage`  | Authenticated | Get current API call usage, limit, and period  |
+
 ---
 
 ## Authentication
@@ -319,6 +325,7 @@ src/
     processors/              # BullMQ workers
     schedulers/              # Cron jobs
   common/
+    decorators/              # All shared decorators (@Public, @JwtOnly, @Roles, @CurrentUser, @AuditContext, @SkipUsageTracking)
     dto/                     # Shared DTOs
     interceptors/            # Usage tracker interceptor
     utils/                   # JWT utility, slug utility
@@ -388,8 +395,7 @@ src/
 
 #### API Keys
 
-- [ ] API key expiration enforcement during authentication
-- [ ] `lastUsedAt` tracking on key usage
+- [x] `lastUsedAt` tracking on key usage
 
 #### Webhooks
 
@@ -398,13 +404,27 @@ src/
 
 #### Usage & Observability
 
-- [ ] `GET /usage` — endpoint for orgs to query current usage and limits
+- [x] `GET /usage` — endpoint for orgs to query current usage and limits
 - [ ] Usage limit warning notifications (80%, 95%)
 
 #### Organization
 
 - [ ] Organization deletion endpoint
 - [ ] Transfer ownership endpoint
+
+#### AI Integration
+
+- [ ] **AI Usage Insights** — `GET /usage/insights` — analyzes org API usage patterns and returns actionable recommendations (e.g. approaching limits, peak usage times, upgrade suggestions)
+- [ ] **Audit Log Anomaly Detection** — monitors audit logs for suspicious activity; if failed login attempts from a specific IP exceed a configurable threshold, the IP is automatically blacklisted in Redis
+- [ ] **Smart Onboarding Assistant** — `POST /onboarding/ask` — new orgs can ask natural language questions about the API, answered based on their current plan, usage, and configuration
+
+#### AWS Integration
+
+- [ ] **SES** — Replace Mailtrap with AWS SES for production email delivery
+- [ ] **RDS** — Replace local PostgreSQL with RDS (db.t3.micro)
+- [ ] **ElastiCache** — Replace local Redis with ElastiCache
+- [ ] **ECR + ECS** — Containerize and deploy via ECS Fargate using existing `Dockerfile`
+- [ ] **S3** — File uploads (org logo, user avatar)
 
 #### Developer Experience
 

@@ -15,7 +15,7 @@ import {
   JwtOnly,
   Public,
   Roles,
-} from '../auth/decorator';
+} from '../../common/decorators';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import { CreateInvitationDto, AcceptInvitationDto } from './dto';
 import { InvitationStatus, UserRole } from '../../enums';

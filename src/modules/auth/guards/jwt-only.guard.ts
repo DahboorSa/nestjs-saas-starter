@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
-import { JWT_ONLY } from '../decorator';
+import { JWT_ONLY } from '../../../common/decorators';
 
 @Injectable()
 export class JwtOnlyGuard implements CanActivate {
