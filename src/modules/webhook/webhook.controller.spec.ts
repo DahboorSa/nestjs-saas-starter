@@ -10,8 +10,12 @@ const mockWebhookService = {
   remove: jest.fn(),
 };
 
-const auditContext = { ipAddress: '127.0.0.1', userAgent: 'jest' } as any;
-const userInfo = { userId: 'user-1', orgId: 'org-1' } as any;
+const auditContext = {
+  organizationId: 'org-1',
+  userId: 'user-1',
+  ipAddress: '127.0.0.1',
+  userAgent: 'jest',
+} as any;
 
 const mockWebhook = {
   id: 'webhook-1',
@@ -48,7 +52,7 @@ describe('WebhookController', () => {
     it('should return all active webhooks for the org', async () => {
       mockWebhookService.findAll.mockResolvedValue([mockWebhook]);
 
-      const result = await controller.findAll(userInfo);
+      const result = await controller.findAll(auditContext);
 
       expect(result).toEqual([mockWebhook]);
       expect(mockWebhookService.findAll).toHaveBeenCalledWith('org-1');
@@ -57,7 +61,7 @@ describe('WebhookController', () => {
     it('should return empty array if no webhooks exist', async () => {
       mockWebhookService.findAll.mockResolvedValue([]);
 
-      const result = await controller.findAll(userInfo);
+      const result = await controller.findAll(auditContext);
 
       expect(result).toEqual([]);
     });
@@ -74,12 +78,11 @@ describe('WebhookController', () => {
       const expected = { ...mockWebhook, secret: 'abc123secret' };
       mockWebhookService.create.mockResolvedValue(expected);
 
-      const result = await controller.create(auditContext, userInfo, body);
+      const result = await controller.create(auditContext, body);
 
       expect(result).toEqual(expected);
       expect(mockWebhookService.create).toHaveBeenCalledWith(
         auditContext,
-        userInfo,
         body,
       );
     });
@@ -92,16 +95,11 @@ describe('WebhookController', () => {
       const expected = { ...mockWebhook, isActive: false };
       mockWebhookService.remove.mockResolvedValue(expected);
 
-      const result = await controller.delete(
-        auditContext,
-        userInfo,
-        'webhook-1',
-      );
+      const result = await controller.delete(auditContext, 'webhook-1');
 
       expect(result).toEqual(expected);
       expect(mockWebhookService.remove).toHaveBeenCalledWith(
         auditContext,
-        userInfo,
         'webhook-1',
       );
     });

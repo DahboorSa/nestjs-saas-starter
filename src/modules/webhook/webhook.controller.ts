@@ -8,13 +8,8 @@ import {
   Param,
 } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
-import {
-  AuditContext,
-  CurrentUser,
-  JwtOnly,
-  Roles,
-} from '../../common/decorators';
-import { AuditContextDto, UserInfoDto } from '../../common/dto';
+import { AuditContext, JwtOnly, Roles } from '../../common/decorators';
+import { AuditContextDto } from '../../common/dto';
 import { UserRole } from '../../enums';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { WebhookTrackerInterceptor } from './interceptors/webhook-tracker.interceptor';
@@ -24,8 +19,8 @@ export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
 
   @Get()
-  findAll(@CurrentUser() user: UserInfoDto) {
-    return this.webhookService.findAll(user.orgId);
+  findAll(@AuditContext() auditContext: AuditContextDto) {
+    return this.webhookService.findAll(auditContext.organizationId);
   }
 
   @Post()
@@ -34,10 +29,9 @@ export class WebhookController {
   @UseInterceptors(WebhookTrackerInterceptor)
   create(
     @AuditContext() auditContext: AuditContextDto,
-    @CurrentUser() user: UserInfoDto,
     @Body() body: CreateWebhookDto,
   ) {
-    return this.webhookService.create(auditContext, user, body);
+    return this.webhookService.create(auditContext, body);
   }
 
   @Delete('/:id')
@@ -45,9 +39,18 @@ export class WebhookController {
   @JwtOnly()
   delete(
     @AuditContext() auditContext: AuditContextDto,
-    @CurrentUser() user: UserInfoDto,
     @Param('id') id: string,
   ) {
-    return this.webhookService.remove(auditContext, user, id);
+    return this.webhookService.remove(auditContext, id);
+  }
+
+  @Get('/:id/deliveries')
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @JwtOnly()
+  findAllDeliveries(
+    @AuditContext() auditContext: AuditContextDto,
+    @Param('id') id: string,
+  ) {
+    return this.webhookService.findAllDeliveries(auditContext, id);
   }
 }

@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Raw, Repository } from 'typeorm';
 import { WebhookEndpointEntity } from './entities/webhook-endpoint.entity';
-import { AuditContextDto, UserInfoDto } from '../../common/dto';
+import { AuditContextDto } from '../../common/dto';
 import { randomBytes } from 'crypto';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { AuditLogService } from '../audit-logs/audit-log.service';
@@ -77,14 +77,14 @@ export class WebhookService {
   }
   async create(
     auditContext: AuditContextDto,
-    user: UserInfoDto,
     body: CreateWebhookDto,
   ): Promise<Partial<WebhookEndpointEntity>> {
     const secret = randomBytes(32).toString('hex');
+    const { organizationId } = auditContext;
     const webhookData = this.webhookEndpointRepository.create({
       ...body,
       secret,
-      organization: { id: user.orgId },
+      organization: { id: organizationId },
     });
     const webhook = await this.webhookEndpointRepository.save(webhookData);
 
@@ -106,13 +106,12 @@ export class WebhookService {
 
   async remove(
     auditContext: AuditContextDto,
-    userInfo: UserInfoDto,
     id: string,
   ): Promise<Partial<WebhookEndpointEntity>> {
-    const { orgId } = userInfo;
+    const { organizationId } = auditContext;
     const webhook = await this.webhookEndpointRepository.findOneBy({
       id,
-      organization: { id: orgId },
+      organization: { id: organizationId },
     });
     if (!webhook) throw new NotFoundException('Webhook not found');
     if (!webhook.isActive)
@@ -127,5 +126,15 @@ export class WebhookService {
       url: webhook.url,
     });
     return this.mapWebhookData(webhookUpdated);
+  }
+
+  async findAllDeliveries(auditContext: AuditContextDto, id: string) {
+    const { organizationId } = auditContext;
+    const webhook = await this.webhookEndpointRepository.findOne({
+      where: { id, organization: { id: organizationId } },
+      relations: ['webhookDeliveries'],
+    });
+    if (!webhook) throw new NotFoundException('Webhook not found');
+    return webhook.webhookDeliveries;
   }
 }
