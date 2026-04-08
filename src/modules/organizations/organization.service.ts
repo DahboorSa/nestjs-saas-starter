@@ -105,4 +105,11 @@ export class OrganizationService {
       });
     return this.organizationRepository.save(organization);
   }
+
+  async updateFields(
+    id: string,
+    fields: Partial<OrganizationEntity>,
+  ): Promise<void> {
+    await this.organizationRepository.update(id, fields);
+  }
 }

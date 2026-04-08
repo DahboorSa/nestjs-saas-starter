@@ -18,6 +18,7 @@ export default class PlanSeeder implements Seeder {
       {
         name: 'Free',
         price: 0,
+        stripePriceId: null,
         isDefault: true,
         limits: {
           apiCallsPerMonth: 100,
@@ -37,6 +38,7 @@ export default class PlanSeeder implements Seeder {
       {
         name: 'Pro',
         price: 19,
+        stripePriceId: 'price_1TJlVIEGIGbArv80W4R4S2cG',
         limits: {
           apiCallsPerMonth: 50000,
           maxMembers: 25,
@@ -55,6 +57,7 @@ export default class PlanSeeder implements Seeder {
       {
         name: 'Enterprise',
         price: 99,
+        stripePriceId: 'price_1TJlVaEGIGbArv80FHhrlvuJ',
         limits: {
           //-1 => no limit
           apiCallsPerMonth: -1,

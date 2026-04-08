@@ -97,6 +97,8 @@ yarn start:dev
 | `MAILTRAP_FROM_NAME`     | Sender name                             | `SaaS App`              |
 | `URL_PATH`               | Base URL for email links                | `http://localhost:3000` |
 | `ORIGIN`                 | CORS allowed origins (comma-separated)  | `http://localhost:3000` |
+| `STRIPE_SECRET_KEY`      | Stripe secret key                       | `sk_test_...`           |
+| `STRIPE_WEBHOOK_SECRET`  | Stripe webhook signing secret           | `whsec_...`             |
 
 > **Important**: Always set `DB_SYNC=false` before running migrations. Never use `DB_SYNC=true` in production.
 
@@ -205,6 +207,13 @@ npx madge --circular src/main.ts
 | Method | Endpoint  | Access        | Description                                    |
 | ------ | --------- | ------------- | ---------------------------------------------- |
 | GET    | `/usage`  | Authenticated | Get current API call usage, limit, and period  |
+
+### Payments — `/payments`
+
+| Method | Endpoint                  | Access          | Description                        |
+| ------ | ------------------------- | --------------- | ---------------------------------- |
+| POST   | `/payments/subscription`  | JWT only, Owner | Create Stripe subscription         |
+| GET    | `/payments/subscription`  | JWT only, Owner | Get current subscription status    |
 
 ---
 
@@ -341,9 +350,11 @@ src/
     webhook/                 # Webhook endpoints
     webhook-dispatchers/     # Webhook dispatch service
     webhook-deliveries/      # Delivery records
-    usage/                   # Usage tracking
+    usage/                   # Usage tracking + GET /usage endpoint
     usage-records/           # Usage persistence
     audit-logs/              # Audit log service
+    stripe/                  # Stripe SDK wrapper (StripeService)
+    payments/                # Subscription management (POST/GET /payments/subscription)
 ```
 
 ---
@@ -380,13 +391,13 @@ src/
 
 #### Payment Integration
 
-- [ ] `StripeModule` + `StripeService` setup
-- [ ] `POST /payments/subscription` — create Stripe subscription
-- [ ] `GET /payments/subscription` — get current subscription status
+- [x] `StripeModule` + `StripeService` setup
+- [x] `POST /payments/subscription` — create Stripe subscription
+- [x] `GET /payments/subscription` — get current subscription status
+- [x] `paymentStatus` field on org (`FREE`, `TRIAL`, `ACTIVE`, `SUSPENDED`, `CANCELLED`)
+- [x] `stripePriceId` on `PlanEntity`, `stripeCustomerId` + `stripeSubscriptionId` on `OrganizationEntity`
 - [ ] `POST /stripe/webhook` — handle Stripe events (payment success, failure, cancellation)
-- [ ] Organization `status` field (`TRIAL`, `ACTIVE`, `PENDING_PAYMENT`, `SUSPENDED`, `CANCELLED`)
-- [ ] Free trial period per plan (`freeTrialDays` on `PlanEntity`)
-- [ ] Trial expiry scheduler → transition org to `PENDING_PAYMENT`
+- [ ] Trial expiry scheduler → transition org to `SUSPENDED`
 
 #### Plans & Upgrades
 

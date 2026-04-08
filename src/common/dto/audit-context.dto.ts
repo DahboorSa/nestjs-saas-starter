@@ -4,4 +4,5 @@ export class AuditContextDto {
   apiKeyId: string;
   ipAddress: string;
   userAgent: string;
+  organizationEmail?: string;
 }
