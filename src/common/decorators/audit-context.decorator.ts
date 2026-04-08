@@ -5,6 +5,7 @@ export const AuditContext = createParamDecorator(
     const req = ctx.switchToHttp().getRequest();
     return {
       organizationId: req.user?.orgId ?? null,
+      organizationEmail: req.user?.role === 'owner' ? req.user?.email : null,
       userId: req.user?.userId ?? null,
       apiKeyId: req.user?.apiKeyId ?? null,
       ipAddress: req.ip,

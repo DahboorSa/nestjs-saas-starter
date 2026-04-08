@@ -20,6 +20,7 @@ import { AuditLogService } from './modules/audit-logs/audit-log.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WebhookModule } from './modules/webhook/webhook.module';
 import { SchedulerModule } from './jobs/schedulers/scheduler.module';
+import { PaymentModule } from './modules/payments/payment.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SchedulerModule } from './jobs/schedulers/scheduler.module';
     }),
     WebhookModule,
     SchedulerModule,
+    PaymentModule,
   ],
   controllers: [],
   providers: [

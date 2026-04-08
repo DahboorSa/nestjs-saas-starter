@@ -6,3 +6,4 @@ export { UserRole } from './UserRole';
 export { UsageMetric } from './UsageMetric';
 export { WebhookEvent } from './WebhookEvent';
 export { Plan } from './Plan';
+export { PaymentStatus } from './PaymentStatus';

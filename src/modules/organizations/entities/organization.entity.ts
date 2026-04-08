@@ -1,3 +1,4 @@
+import { PaymentStatus } from '../../../enums/PaymentStatus';
 import { ApiKeyEntity } from '../../../modules/api-keys/entities/api-key.entity';
 import { AuditLogEntity } from '../../../modules/audit-logs/entities/audit-log.entity';
 import { InvitationEntity } from '../../../modules/invitations/entities/invitation.entity';
@@ -24,6 +25,16 @@ export class OrganizationEntity {
   name: string;
   @Column({ unique: true })
   slug: string;
+  @Column({ nullable: true })
+  stripeCustomerId: string;
+  @Column({ nullable: true })
+  stripeSubscriptionId: string;
+  @Column({
+    type: 'enum',
+    enum: PaymentStatus,
+    default: PaymentStatus.FREE,
+  })
+  paymentStatus: PaymentStatus;
   @Column({ default: true })
   isActive: boolean; // owner can deactivate / admin can suspend
   @Column({ type: 'timestamp', nullable: true })
