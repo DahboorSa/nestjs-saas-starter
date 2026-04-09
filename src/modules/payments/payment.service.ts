@@ -34,14 +34,17 @@ export class PaymentService {
     }
     await this.stripeService.attachPaymentMethod(paymentMethodId, customerId);
     const { stripePriceId } = organizationDetails.plan;
+    const { trialEndsAt } = organizationDetails;
+    const isInTrial = trialEndsAt && trialEndsAt > new Date();
     const subscription = await this.stripeService.createSubscription(
       customerId,
       stripePriceId,
       paymentMethodId,
+      isInTrial ? trialEndsAt : undefined,
     );
     await this.organizationService.updateFields(organizationId, {
       stripeSubscriptionId: subscription.id,
-      paymentStatus: PaymentStatus.ACTIVE,
+      paymentStatus: isInTrial ? PaymentStatus.TRIAL : PaymentStatus.ACTIVE,
     });
     return {
       message: 'Subscription created successfully',

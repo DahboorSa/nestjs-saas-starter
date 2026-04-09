@@ -37,4 +37,12 @@ export class UtilityService {
     );
     return Math.floor((endOfMonth.getTime() - now.getTime()) / 1000);
   }
+
+  getTrialEndDate(trialDays: number): Date | null {
+    if (trialDays > 0) {
+      const now = new Date();
+      return new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+    }
+    return null;
+  }
 }

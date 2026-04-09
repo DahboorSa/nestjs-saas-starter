@@ -23,6 +23,10 @@ export class OrganizationService {
     private readonly dispatcher: WebhookDispatcherService,
   ) {}
 
+  async getAll(where?: any): Promise<OrganizationEntity[]> {
+    return this.organizationRepository.find({ where });
+  }
+
   async getByName(name: string): Promise<OrganizationEntity | null> {
     return this.organizationRepository.findOne({ where: { name } });
   }
