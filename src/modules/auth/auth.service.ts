@@ -22,7 +22,12 @@ import { UserService } from '../users/user.service';
 import { PlanService } from '../plans/plan.service';
 import { DataSource } from 'typeorm';
 import * as argon from 'argon2';
-import { AuditAction, AuditResourceType, UserRole } from '../../enums';
+import {
+  AuditAction,
+  AuditResourceType,
+  PaymentStatus,
+  UserRole,
+} from '../../enums';
 import { OrganizationEntity } from '../organizations/entities/organization.entity';
 import { UserEntity } from '../users/entities/user.entity';
 import { CacheService } from '../../cache/cache.service';
@@ -98,6 +103,9 @@ export class AuthService {
             name: body.name,
             slug,
             plan,
+            trialEndsAt: this.utilityService.getTrialEndDate(plan.trialDays),
+            paymentStatus:
+              plan.name === 'Free' ? PaymentStatus.FREE : PaymentStatus.TRIAL,
           });
         const user = await manager.getRepository(UserEntity).save({
           email: body.email?.toLowerCase(),

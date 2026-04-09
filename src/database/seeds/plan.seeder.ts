@@ -38,7 +38,8 @@ export default class PlanSeeder implements Seeder {
       {
         name: 'Pro',
         price: 19,
-        stripePriceId: 'price_1TJlVIEGIGbArv80W4R4S2cG',
+        stripePriceId: 'price_1TJlVIEGIGbArv80W4R4S2cG', // replace with your actual Stripe price ID
+        trialDays: 14,
         limits: {
           apiCallsPerMonth: 50000,
           maxMembers: 25,
@@ -58,6 +59,7 @@ export default class PlanSeeder implements Seeder {
         name: 'Enterprise',
         price: 99,
         stripePriceId: 'price_1TJlVaEGIGbArv80FHhrlvuJ',
+        trialDays: 30,
         limits: {
           //-1 => no limit
           apiCallsPerMonth: -1,

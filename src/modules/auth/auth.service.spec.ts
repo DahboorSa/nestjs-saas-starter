@@ -35,7 +35,10 @@ const mockDataSource = { transaction: jest.fn() };
 const mockCacheService = { get: jest.fn(), set: jest.fn(), delete: jest.fn() };
 const mockEmailQueueService = { add: jest.fn() };
 const mockConfigService = { get: jest.fn().mockReturnValue(604800) };
-const mockUtilityService = { generateSlug: jest.fn() };
+const mockUtilityService = {
+  generateSlug: jest.fn(),
+  getTrialEndDate: jest.fn(),
+};
 const mockJwtUtilityService = {
   issueTokenPair: jest.fn().mockResolvedValue({
     accessToken: 'access-token',
@@ -97,7 +100,11 @@ describe('AuthService', () => {
 
     it('should throw ConflictException if user already exists and is active', async () => {
       mockUserService.getByEmail.mockResolvedValue({ isActive: true });
-      mockPlanService.getByName.mockResolvedValue({ id: 1 });
+      mockPlanService.getByName.mockResolvedValue({
+        id: 1,
+        name: 'Free',
+        trialDays: 0,
+      });
 
       await expect(
         service.register(auditContext as any, registerDto as any),
@@ -115,7 +122,11 @@ describe('AuthService', () => {
 
     it('should register user successfully', async () => {
       mockUserService.getByEmail.mockResolvedValue(null);
-      mockPlanService.getByName.mockResolvedValue({ id: 1, name: 'Free' });
+      mockPlanService.getByName.mockResolvedValue({
+        id: 1,
+        name: 'Free',
+        trialDays: 0,
+      });
       (argon.hash as jest.Mock).mockResolvedValue('hashed-password');
       mockCacheService.set.mockResolvedValue(undefined);
       mockEmailQueueService.add.mockResolvedValue(undefined);

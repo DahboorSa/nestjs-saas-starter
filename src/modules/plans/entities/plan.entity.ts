@@ -17,6 +17,8 @@ export class PlanEntity {
   price: number;
   @Column({ nullable: true })
   stripePriceId: string;
+  @Column({ type: 'int', default: 0 })
+  trialDays: number;
   @Column({ type: 'jsonb' })
   limits: {
     apiCallsPerMonth: number;

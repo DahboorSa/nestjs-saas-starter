@@ -16,6 +16,7 @@ export class StripeService {
 
   createCustomer(name: string, email: string, orgId: string) {
     return this.stripe.customers.create({
+      name,
       email,
       metadata: { orgId },
     });
@@ -31,12 +32,14 @@ export class StripeService {
     customerId: string,
     priceId: string,
     paymentMethodId: string,
+    trialEnd?: Date,
   ) {
     return this.stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
       default_payment_method: paymentMethodId,
       payment_behavior: 'error_if_incomplete',
+      ...(trialEnd && { trial_end: Math.floor(trialEnd.getTime() / 1000) }),
     });
   }
 

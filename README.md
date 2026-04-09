@@ -16,6 +16,7 @@ A production-ready, multi-tenant SaaS backend built with NestJS. Includes authen
 - **Scheduling**: @nestjs/schedule (cron jobs)
 - **Rate Limiting**: @nestjs/throttler
 - **Password Hashing**: Argon2
+- **Payments**: Stripe (subscriptions + billing)
 - **Containerization**: Docker + Docker Compose
 
 ---
@@ -309,11 +310,12 @@ Delivers webhooks to registered endpoints with:
 
 ### Schedulers
 
-| Cron                     | Job                                         |
-| ------------------------ | ------------------------------------------- |
-| Every 5 minutes          | Sync usage metrics from Redis → PostgreSQL  |
-| 1st of month at midnight | Reset monthly usage counters in Redis       |
-| Every day at midnight    | Expire pending invitations past `expiresAt` |
+| Cron                     | Job                                                                              |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| Every 5 minutes          | Sync usage metrics from Redis → PostgreSQL                                       |
+| 1st of month at midnight | Reset monthly usage counters in Redis                                            |
+| Every day at midnight    | Expire pending invitations past `expiresAt`                                      |
+| Every day at midnight    | Suspend orgs whose trial expired with no payment method; cancel after 5-day grace period |
 
 ---
 
@@ -396,8 +398,11 @@ src/
 - [x] `GET /payments/subscription` — get current subscription status
 - [x] `paymentStatus` field on org (`FREE`, `TRIAL`, `ACTIVE`, `SUSPENDED`, `CANCELLED`)
 - [x] `stripePriceId` on `PlanEntity`, `stripeCustomerId` + `stripeSubscriptionId` on `OrganizationEntity`
+- [x] `trialDays` on `PlanEntity` — per-plan trial period (Free: 0, Pro: 14, Enterprise: 30)
+- [x] `trialEndsAt` set on org at registration based on selected plan
+- [x] Trial-aware billing — subscription defers charge if org is still within free trial period
 - [ ] `POST /stripe/webhook` — handle Stripe events (payment success, failure, cancellation)
-- [ ] Trial expiry scheduler → transition org to `SUSPENDED`
+- [x] Trial expiry scheduler → suspend org after trial ends, cancel + deactivate after 5-day grace period
 
 #### Plans & Upgrades
 
