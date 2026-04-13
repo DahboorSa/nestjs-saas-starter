@@ -129,7 +129,10 @@ describe('PaymentService', () => {
 
       expect(mockOrganizationService.updateFields).toHaveBeenCalledWith(
         'org-1',
-        { stripeSubscriptionId: 'sub_123', paymentStatus: PaymentStatus.ACTIVE },
+        {
+          stripeSubscriptionId: 'sub_123',
+          paymentStatus: PaymentStatus.ACTIVE,
+        },
       );
     });
   });
