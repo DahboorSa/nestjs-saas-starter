@@ -1,9 +1,8 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import * as Nodemailer from 'nodemailer';
-import { MailtrapTransport } from 'mailtrap';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 type EmailTemplate = (data: any) => { subject: string; text: string };
 
@@ -35,23 +34,23 @@ const buildTemplates = (baseUrl: string): Record<string, EmailTemplate> => ({
 export class EmailProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailProcessor.name);
   private readonly templates: Record<string, EmailTemplate>;
-
+  private readonly sesClient: SESClient;
   constructor(private readonly configService: ConfigService) {
     super();
     this.templates = buildTemplates(this.configService.get<string>('URL_PATH'));
+    this.sesClient = new SESClient({
+      region: this.configService.get<string>('AWS_REGION'),
+      credentials: {
+        accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID'),
+        secretAccessKey: this.configService.get<string>(
+          'AWS_SECRET_ACCESS_KEY',
+        ),
+      },
+    });
   }
 
   async process(job: Job<any>) {
     try {
-      const mailtrap = Nodemailer.createTransport(
-        MailtrapTransport({
-          token: this.configService.get<string>('MAILTRAP_API_KEY'),
-          sandbox: true,
-          testInboxId: +this.configService.get<number>(
-            'MAILTRAP_TEST_INBOX_ID',
-          ),
-        }),
-      );
       const { data } = job;
       const { email, userId } = data;
       this.logger.log(
@@ -65,15 +64,26 @@ export class EmailProcessor extends WorkerHost {
       }
       const { subject, text } = template(data);
 
-      await mailtrap.sendMail({
-        from: {
-          address: this.configService.get<string>('MAILTRAP_FROM_EMAIL'),
-          name: this.configService.get<string>('MAILTRAP_FROM_NAME'),
+      const sendEmailCommand = new SendEmailCommand({
+        Destination: {
+          ToAddresses: [email],
         },
-        to: [email],
-        subject,
-        text,
+        Message: {
+          Body: {
+            Text: {
+              Charset: 'UTF-8',
+              Data: text,
+            },
+          },
+          Subject: {
+            Charset: 'UTF-8',
+            Data: subject,
+          },
+        },
+        Source: this.configService.get<string>('SES_FROM_EMAIL'),
       });
+      await this.sesClient.send(sendEmailCommand);
+
       this.logger.log('Email sent successfully', userId);
     } catch (error) {
       this.logger.error(error);

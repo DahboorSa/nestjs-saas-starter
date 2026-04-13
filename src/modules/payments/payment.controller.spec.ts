@@ -81,7 +81,10 @@ describe('PaymentController', () => {
     });
 
     it('should return null subscription if no subscription exists', async () => {
-      const expected = { paymentStatus: PaymentStatus.FREE, subscription: null };
+      const expected = {
+        paymentStatus: PaymentStatus.FREE,
+        subscription: null,
+      };
       mockPaymentService.getSubscription.mockResolvedValue(expected);
 
       const result = await controller.getSubscription(auditContext);

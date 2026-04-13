@@ -12,11 +12,12 @@ A production-ready, multi-tenant SaaS backend built with NestJS. Includes authen
 - **Database**: PostgreSQL via TypeORM
 - **Cache / Queue**: Redis (ioredis) + BullMQ
 - **Auth**: JWT (access + refresh tokens) + API Key (passport-custom)
-- **Email**: Mailtrap / Nodemailer
+- **Email**: AWS SES (`@aws-sdk/client-ses`)
 - **Scheduling**: @nestjs/schedule (cron jobs)
 - **Rate Limiting**: @nestjs/throttler
 - **Password Hashing**: Argon2
 - **Payments**: Stripe (subscriptions + billing)
+- **Security**: Helmet
 - **Containerization**: Docker + Docker Compose
 
 ---
@@ -69,39 +70,86 @@ yarn start:dev
 
 ## Environment Variables
 
-| Variable                 | Description                             | Example                 |
-| ------------------------ | --------------------------------------- | ----------------------- |
-| `DB_HOST`                | Postgres host                           | `localhost`             |
-| `DB_PORT`                | Postgres port                           | `5432`                  |
-| `DB_USER`                | Postgres user                           | `saas_user`             |
-| `DB_PASSWORD`            | Postgres password                       | `saas_password`         |
-| `DB_NAME`                | Postgres database                       | `saas_dev`              |
-| `DB_SYNC`                | Auto-sync entities (never true in prod) | `false`                 |
-| `DB_LOGGING`             | Enable query logging                    | `false`                 |
-| `REDIS_HOST`             | Redis host                              | `localhost`             |
-| `REDIS_PORT`             | Redis port                              | `6379`                  |
-| `JWT_SECRET`             | Access token secret                     | `your_secret`           |
-| `JWT_EXPIRES_IN`         | Access token TTL                        | `15m`                   |
-| `JWT_REFRESH_SECRET`     | Refresh token secret                    | `your_refresh_secret`   |
-| `JWT_REFRESH_EXPIRY`     | Refresh token TTL                       | `7d`                    |
-| `REFRESH_TOKEN_TTL`      | Refresh token Redis TTL (seconds)       | `604800`                |
-| `API_KEY_PREFIX`         | API key prefix                          | `sk_live_`              |
-| `API_KEY_TTL`            | API key cache TTL (seconds)             | `300`                   |
-| `INVITE_TOKEN_TTL`       | Invitation token TTL (seconds)          | `172800`                |
-| `TTL_EXPIRATION`         | General token TTL (seconds)             | `86400`                 |
-| `THROTTLER_TTL`          | Rate limit window (ms)                  | `60000`                 |
-| `THROTTLER_LIMIT`        | Max requests per window                 | `600`                   |
-| `THROTTLER_AUTH_LIMIT`   | Max auth requests per window            | `100`                   |
-| `MAILTRAP_API_KEY`       | Mailtrap API key                        | `your_key`              |
-| `MAILTRAP_TEST_INBOX_ID` | Mailtrap inbox ID                       | `123456`                |
-| `MAILTRAP_FROM_EMAIL`    | Sender email                            | `noreply@example.com`   |
-| `MAILTRAP_FROM_NAME`     | Sender name                             | `SaaS App`              |
-| `URL_PATH`               | Base URL for email links                | `http://localhost:3000` |
-| `ORIGIN`                 | CORS allowed origins (comma-separated)  | `http://localhost:3000` |
-| `STRIPE_SECRET_KEY`      | Stripe secret key                       | `sk_test_...`           |
-| `STRIPE_WEBHOOK_SECRET`  | Stripe webhook signing secret           | `whsec_...`             |
+| Variable                | Description                             | Example                 |
+| ----------------------- | --------------------------------------- | ----------------------- |
+| `DB_HOST`               | Postgres host                           | `localhost`             |
+| `DB_PORT`               | Postgres port                           | `5432`                  |
+| `DB_USER`               | Postgres user                           | `saas_user`             |
+| `DB_PASSWORD`           | Postgres password                       | `saas_password`         |
+| `DB_NAME`               | Postgres database                       | `saas_dev`              |
+| `DB_SYNC`               | Auto-sync entities (never true in prod) | `false`                 |
+| `DB_LOGGING`            | Enable query logging                    | `false`                 |
+| `REDIS_HOST`            | Redis host                              | `localhost`             |
+| `REDIS_PORT`            | Redis port                              | `6379`                  |
+| `JWT_SECRET`            | Access token secret                     | `your_secret`           |
+| `JWT_EXPIRES_IN`        | Access token TTL                        | `15m`                   |
+| `JWT_REFRESH_SECRET`    | Refresh token secret                    | `your_refresh_secret`   |
+| `JWT_REFRESH_EXPIRY`    | Refresh token TTL                       | `7d`                    |
+| `REFRESH_TOKEN_TTL`     | Refresh token Redis TTL (seconds)       | `604800`                |
+| `API_KEY_PREFIX`        | API key prefix                          | `sk_live_`              |
+| `API_KEY_EXPIRATION`    | API key cache TTL (seconds)             | `300`                   |
+| `INVITE_TOKEN_TTL`      | Invitation token TTL (seconds)          | `172800`                |
+| `TTL_EXPIRATION`        | General token TTL (seconds)             | `86400`                 |
+| `THROTTLER_TTL`         | Rate limit window (ms)                  | `60000`                 |
+| `THROTTLER_LIMIT`       | Max requests per window                 | `600`                   |
+| `THROTTLER_AUTH_LIMIT`  | Max auth requests per window            | `100`                   |
+| `STRIPE_SECRET_KEY`     | Stripe secret key                       | `sk_test_...`           |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret           | `whsec_...`             |
+| `AWS_ACCESS_KEY_ID`     | AWS access key                          | `AKIA...`               |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key                          | `your_secret`           |
+| `AWS_REGION`            | AWS region for SES                      | `us-east-1`             |
+| `SES_FROM_EMAIL`        | Verified sender email in SES            | `noreply@example.com`   |
+| `URL_PATH`              | Base URL for email links                | `http://localhost:3000` |
+| `ORIGIN`                | CORS allowed origins (comma-separated)  | `http://localhost:3000` |
 
 > **Important**: Always set `DB_SYNC=false` before running migrations. Never use `DB_SYNC=true` in production.
+
+> **Stripe Plans**: After seeding, set `stripePriceId` on each paid plan in the database to match your Stripe Price IDs. Free plan can be left null. Example:
+>
+> ```sql
+> UPDATE plans SET stripe_price_id = 'price_xxx' WHERE name = 'Pro';
+> UPDATE plans SET stripe_price_id = 'price_yyy' WHERE name = 'Enterprise';
+> ```
+>
+> Create products and prices in your [Stripe Dashboard](https://dashboard.stripe.com/products) or via the Stripe CLI.
+
+---
+
+## Stripe Webhook (Local Development)
+
+1. Install Stripe CLI:
+
+```bash
+brew install stripe/stripe-cli/stripe
+```
+
+2. Login:
+
+```bash
+stripe login
+```
+
+3. Forward Stripe events to your local server:
+
+```bash
+stripe listen --forward-to localhost:3000/stripe/webhook
+```
+
+Copy the `whsec_...` secret printed and set it in `.env`:
+
+```env
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+4. Restart the app, then trigger test events:
+
+```bash
+stripe trigger customer.subscription.updated
+stripe trigger invoice.payment_failed
+stripe trigger customer.subscription.deleted
+```
+
+> **Production**: Register `https://yourdomain.com/stripe/webhook` in the Stripe Dashboard under Developers → Webhooks. Select events: `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`.
 
 ---
 
@@ -196,25 +244,31 @@ npx madge --circular src/main.ts
 
 ### Webhooks — `/webhooks`
 
-| Method | Endpoint                    | Access                | Description                        |
-| ------ | --------------------------- | --------------------- | ---------------------------------- |
-| GET    | `/webhooks`                 | Authenticated         | List webhook endpoints             |
-| POST   | `/webhooks`                 | JWT only, Owner/Admin | Create webhook endpoint            |
-| DELETE | `/webhooks/:id`             | JWT only, Owner/Admin | Delete webhook endpoint            |
-| GET    | `/webhooks/:id/deliveries`  | JWT only, Owner/Admin | List delivery history for endpoint |
+| Method | Endpoint                   | Access                | Description                        |
+| ------ | -------------------------- | --------------------- | ---------------------------------- |
+| GET    | `/webhooks`                | JWT only, Owner/Admin | List webhook endpoints             |
+| POST   | `/webhooks`                | JWT only, Owner/Admin | Create webhook endpoint            |
+| DELETE | `/webhooks/:id`            | JWT only, Owner/Admin | Delete webhook endpoint            |
+| GET    | `/webhooks/:id/deliveries` | JWT only, Owner/Admin | List delivery history for endpoint |
 
 ### Usage — `/usage`
 
-| Method | Endpoint  | Access        | Description                                    |
-| ------ | --------- | ------------- | ---------------------------------------------- |
-| GET    | `/usage`  | Authenticated | Get current API call usage, limit, and period  |
+| Method | Endpoint | Access        | Description                                   |
+| ------ | -------- | ------------- | --------------------------------------------- |
+| GET    | `/usage` | Authenticated | Get current API call usage, limit, and period |
 
 ### Payments — `/payments`
 
-| Method | Endpoint                  | Access          | Description                        |
-| ------ | ------------------------- | --------------- | ---------------------------------- |
-| POST   | `/payments/subscription`  | JWT only, Owner | Create Stripe subscription         |
-| GET    | `/payments/subscription`  | JWT only, Owner | Get current subscription status    |
+| Method | Endpoint                 | Access          | Description                     |
+| ------ | ------------------------ | --------------- | ------------------------------- |
+| POST   | `/payments/subscription` | JWT only, Owner | Create Stripe subscription      |
+| GET    | `/payments/subscription` | JWT only, Owner | Get current subscription status |
+
+### Stripe — `/stripe`
+
+| Method | Endpoint          | Access | Description                                |
+| ------ | ----------------- | ------ | ------------------------------------------ |
+| POST   | `/stripe/webhook` | Public | Receive Stripe events (signature verified) |
 
 ---
 
@@ -227,11 +281,22 @@ Two parallel strategies:
 
 ### Decorators
 
-| Decorator                | Effect                          |
-| ------------------------ | ------------------------------- |
-| `@Public()`              | Bypass authentication entirely  |
-| `@JwtOnly()`             | Block API key auth, require JWT |
-| `@Roles(UserRole.OWNER)` | Enforce role RBAC               |
+| Decorator                | Effect                                          |
+| ------------------------ | ----------------------------------------------- |
+| `@Public()`              | Bypass authentication entirely                  |
+| `@JwtOnly()`             | Block API key auth, require JWT                 |
+| `@Roles(UserRole.OWNER)` | Enforce role RBAC                               |
+| `@CurrentUser()`         | Extract current user from request               |
+| `@AuditContext()`        | Extract audit context (userId, orgId, email)    |
+| `@SkipUsageTracking()`   | Skip usage tracking interceptor for the route   |
+
+### Interceptors
+
+| Interceptor                      | Effect                                                    |
+| -------------------------------- | --------------------------------------------------------- |
+| `UsageTrackerInterceptor`        | Tracks API call usage per org, enforces plan limits       |
+| `WebhookTrackerInterceptor`      | Dispatches webhook events after successful mutations      |
+| `MemberInviteTrackerInterceptor` | Fires `member.invited` webhook event on invitation send   |
 
 ### Token Flow
 
@@ -310,11 +375,11 @@ Delivers webhooks to registered endpoints with:
 
 ### Schedulers
 
-| Cron                     | Job                                                                              |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| Every 5 minutes          | Sync usage metrics from Redis → PostgreSQL                                       |
-| 1st of month at midnight | Reset monthly usage counters in Redis                                            |
-| Every day at midnight    | Expire pending invitations past `expiresAt`                                      |
+| Cron                     | Job                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------- |
+| Every 5 minutes          | Sync usage metrics from Redis → PostgreSQL                                               |
+| 1st of month at midnight | Reset monthly usage counters in Redis                                                    |
+| Every day at midnight    | Expire pending invitations past `expiresAt`                                              |
 | Every day at midnight    | Suspend orgs whose trial expired with no payment method; cancel after 5-day grace period |
 
 ---
@@ -355,7 +420,7 @@ src/
     usage/                   # Usage tracking + GET /usage endpoint
     usage-records/           # Usage persistence
     audit-logs/              # Audit log service
-    stripe/                  # Stripe SDK wrapper (StripeService)
+    stripe/                  # Stripe SDK wrapper + webhook handler (POST /stripe/webhook)
     payments/                # Subscription management (POST/GET /payments/subscription)
 ```
 
@@ -401,8 +466,9 @@ src/
 - [x] `trialDays` on `PlanEntity` — per-plan trial period (Free: 0, Pro: 14, Enterprise: 30)
 - [x] `trialEndsAt` set on org at registration based on selected plan
 - [x] Trial-aware billing — subscription defers charge if org is still within free trial period
-- [ ] `POST /stripe/webhook` — handle Stripe events (payment success, failure, cancellation)
+- [x] `POST /stripe/webhook` — handle Stripe events (`customer.subscription.updated`, `invoice.payment_failed`, `customer.subscription.deleted`)
 - [x] Trial expiry scheduler → suspend org after trial ends, cancel + deactivate after 5-day grace period
+- [ ] Trial warning email — notify org 1 day before trial expires
 
 #### Plans & Upgrades
 
@@ -437,7 +503,7 @@ src/
 
 #### AWS Integration
 
-- [ ] **SES** — Replace Mailtrap with AWS SES for production email delivery
+- [x] **SES** — Replaced Mailtrap with AWS SES for email delivery
 - [ ] **RDS** — Replace local PostgreSQL with RDS (db.t3.micro)
 - [ ] **ElastiCache** — Replace local Redis with ElastiCache
 - [ ] **ECR + ECS** — Containerize and deploy via ECS Fargate using existing `Dockerfile`
