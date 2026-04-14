@@ -12,7 +12,7 @@ A production-ready, multi-tenant SaaS backend built with NestJS. Includes authen
 - **Database**: PostgreSQL via TypeORM
 - **Cache / Queue**: Redis (ioredis) + BullMQ
 - **Auth**: JWT (access + refresh tokens) + API Key (passport-custom)
-- **Email**: AWS SES (`@aws-sdk/client-ses`)
+- **Email**: AWS SES (production) / Mailtrap (dev/QA)
 - **Scheduling**: @nestjs/schedule (cron jobs)
 - **Rate Limiting**: @nestjs/throttler
 - **Password Hashing**: Argon2
@@ -93,12 +93,16 @@ yarn start:dev
 | `THROTTLER_TTL`         | Rate limit window (ms)                  | `60000`                 |
 | `THROTTLER_LIMIT`       | Max requests per window                 | `600`                   |
 | `THROTTLER_AUTH_LIMIT`  | Max auth requests per window            | `100`                   |
-| `STRIPE_SECRET_KEY`     | Stripe secret key                       | `sk_test_...`           |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret           | `whsec_...`             |
-| `AWS_ACCESS_KEY_ID`     | AWS access key                          | `AKIA...`               |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key                          | `your_secret`           |
-| `AWS_REGION`            | AWS region for SES                      | `us-east-1`             |
-| `SES_FROM_EMAIL`        | Verified sender email in SES            | `noreply@example.com`   |
+| `STRIPE_SECRET_KEY`      | Stripe secret key                                  | `sk_test_...`           |
+| `STRIPE_WEBHOOK_SECRET`  | Stripe webhook signing secret                      | `whsec_...`             |
+| `MAILTRAP_API_KEY`       | Mailtrap API key (dev/QA only)                     | `your_key`              |
+| `MAILTRAP_TEST_INBOX_ID` | Mailtrap inbox ID (dev/QA only)                    | `123456`                |
+| `MAILTRAP_FROM_EMAIL`    | Sender email for Mailtrap (dev/QA only)            | `noreply@example.com`   |
+| `MAILTRAP_FROM_NAME`     | Sender name for Mailtrap (dev/QA only)             | `SaaS App`              |
+| `AWS_ACCESS_KEY_ID`      | AWS access key (production only)                   | `AKIA...`               |
+| `AWS_SECRET_ACCESS_KEY`  | AWS secret key (production only)                   | `your_secret`           |
+| `AWS_REGION`             | AWS region for SES (production only)               | `us-east-1`             |
+| `SES_FROM_EMAIL`         | Verified sender email in SES (production only)     | `noreply@example.com`   |
 | `URL_PATH`              | Base URL for email links                | `http://localhost:3000` |
 | `ORIGIN`                | CORS allowed origins (comma-separated)  | `http://localhost:3000` |
 
