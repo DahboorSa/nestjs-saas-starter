@@ -1997,6 +1997,13 @@
   dependencies:
     undici-types "~6.21.0"
 
+"@types/nodemailer@^8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@types/nodemailer/-/nodemailer-8.0.0.tgz#ea189a9c151c04cc65c8a2a4c668c65d952a24e2"
+  integrity sha512-fyf8jWULsCo0d0BuoQ75i6IeoHs47qcqxWc7yUdUcV0pOZGjUTTOvwdG1PRXUDqN/8A64yQdQdnA2pZgcdi+cA==
+  dependencies:
+    "@types/node" "*"
+
 "@types/passport-jwt@^4.0.1":
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/@types/passport-jwt/-/passport-jwt-4.0.1.tgz#080fbe934fb9f6954fb88ec4cdf4bb2cc7c4d435"
@@ -2618,7 +2625,7 @@ available-typed-arrays@^1.0.7:
   dependencies:
     possible-typed-array-names "^1.0.0"
 
-axios@^1.15.0:
+axios@>=0.27, axios@^1.15.0:
   version "1.15.0"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.15.0.tgz#0fcee91ef03d386514474904b27863b2c683bf4f"
   integrity sha512-wWyJDlAatxk30ZJer+GeCWS209sA42X+N5jU2jy6oHTp7ufw8uzUTVFBX9+wTfAlhiJXGS0Bq7X6efruWjuK9Q==
@@ -5277,6 +5284,14 @@ magic-string@^0.30.21:
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.5.5"
 
+mailtrap@^4.5.1:
+  version "4.5.1"
+  resolved "https://registry.yarnpkg.com/mailtrap/-/mailtrap-4.5.1.tgz#954719e04018306e4240e9ed9d47af1957bf5d1d"
+  integrity sha512-ABMvAk41q9iteM3Iga9ZaNrR/3RppGEPcYihihv6qnwvmFcE16mKcXSbuIRl3V5tRR5ZRQ4+BuUeZO2Y9xuxRA==
+  dependencies:
+    axios ">=0.27"
+    qs "^6.15.0"
+
 make-dir@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/make-dir/-/make-dir-4.0.0.tgz#c3c2307a771277cd9638305f915c29ae741b614e"
@@ -5554,6 +5569,11 @@ node-source-walk@^7.0.1:
   integrity sha512-3VW/8JpPqPvnJvseXowjZcirPisssnBuDikk6JIZ8jQzF7KJQX52iPFX4RYYxLycYH7IbMRSPUOga/esVjy5Yg==
   dependencies:
     "@babel/parser" "^7.26.7"
+
+nodemailer@^8.0.5:
+  version "8.0.5"
+  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-8.0.5.tgz#2076fb2b5c1ccfe1c88f6e1aa47c0229ea642e0c"
+  integrity sha512-0PF8Yb1yZuQfQbq+5/pZJrtF6WQcjTd5/S4JOHs9PGFxuTqoB/icwuB44pOdURHJbRKX1PPoJZtY7R4VUoCC8w==
 
 normalize-path@^3.0.0, normalize-path@~3.0.0:
   version "3.0.0"
@@ -6002,6 +6022,13 @@ qs@^6.14.0, qs@^6.14.1:
   version "6.15.0"
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.15.0.tgz#db8fd5d1b1d2d6b5b33adaf87429805f1909e7b3"
   integrity sha512-mAZTtNCeetKMH+pSjrb76NAM8V9a05I9aBZOHztWy/UqcJdQYNsf59vrRKWnojAT9Y+GbIvoTBC++CPHqpDBhQ==
+  dependencies:
+    side-channel "^1.1.0"
+
+qs@^6.15.0:
+  version "6.15.1"
+  resolved "https://registry.yarnpkg.com/qs/-/qs-6.15.1.tgz#bdb55aed06bfac257a90c44a446a73fba5575c8f"
+  integrity sha512-6YHEFRL9mfgcAvql/XhwTvf5jKcOiiupt2FiJxHkiX1z4j7WL8J/jRHYLluORvc1XxB5rV20KoeK00gVJamspg==
   dependencies:
     side-channel "^1.1.0"
 
