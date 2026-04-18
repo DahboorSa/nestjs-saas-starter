@@ -476,7 +476,7 @@ src/
 
 #### Plans & Upgrades
 
-- [ ] `PATCH /organizations/plan` — upgrade/downgrade endpoint
+- [ ] `PATCH /organizations/plan` — upgrade/downgrade endpoint (must include Stripe idempotency key to prevent double charges on double-click)
 - [ ] `pendingPlan` field on org for scheduled downgrades
 - [ ] Enforce plan limits (`maxWebhooks`, `maxMembers`)
 

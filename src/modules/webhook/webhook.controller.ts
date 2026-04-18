@@ -19,6 +19,8 @@ export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
 
   @Get()
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @JwtOnly()
   findAll(@AuditContext() auditContext: AuditContextDto) {
     return this.webhookService.findAll(auditContext.organizationId);
   }

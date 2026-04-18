@@ -9,4 +9,7 @@ export enum WebhookEvent {
   API_KEY_CREATED = 'apikey.created',
   API_KEY_REVOKED = 'apikey.revoked',
   PLAN_LIMIT_EXCEEDED = 'plan.limit_exceeded',
+  PLAN_UPGRADED = 'plan.upgraded',
+  PLAN_DOWNGRADED = 'plan.downgraded',
+  API_LIMIT_EXCEEDED = 'api.limit_exceeded',
 }

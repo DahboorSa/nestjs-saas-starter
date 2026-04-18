@@ -34,13 +34,18 @@ export class StripeService {
     paymentMethodId: string,
     trialEnd?: Date,
   ) {
-    return this.stripe.subscriptions.create({
-      customer: customerId,
-      items: [{ price: priceId }],
-      default_payment_method: paymentMethodId,
-      payment_behavior: 'error_if_incomplete',
-      ...(trialEnd && { trial_end: Math.floor(trialEnd.getTime() / 1000) }),
-    });
+    return this.stripe.subscriptions.create(
+      {
+        customer: customerId,
+        items: [{ price: priceId }],
+        default_payment_method: paymentMethodId,
+        payment_behavior: 'error_if_incomplete',
+        ...(trialEnd && { trial_end: Math.floor(trialEnd.getTime() / 1000) }),
+      },
+      {
+        idempotencyKey: `sub_${customerId}_${priceId}`,
+      },
+    );
   }
 
   retrieveSubscription(subscriptionId: string) {
