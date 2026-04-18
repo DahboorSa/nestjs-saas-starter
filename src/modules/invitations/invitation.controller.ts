@@ -20,7 +20,6 @@ import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import { CreateInvitationDto, AcceptInvitationDto } from './dto';
 import { InvitationStatus, UserRole } from '../../enums';
 import { MemberInviteTrackerInterceptor } from '../../modules/invitations/interceptors/member-invite-tracker.interceptor';
-import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller('invitations')
 export class InvitationController {
@@ -48,7 +47,6 @@ export class InvitationController {
 
   @Post('accept')
   @Public()
-  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   async acceptInvitation(
     @AuditContext() auditContext: AuditContextDto,

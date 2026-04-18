@@ -42,16 +42,15 @@ export class StripeWebhookService {
   }
 
   private async handleSubscriptionUpdated(subscription: any): Promise<void> {
-    const orgs = await this.organizationService.getAll({
+    const org = await this.organizationService.getOneBy({
       stripeSubscriptionId: subscription.id,
     });
-    if (!orgs.length) {
+    if (!org) {
       this.logger.warn(
         `No org found for subscription ${subscription.id} (subscription.updated)`,
       );
       return;
     }
-    const org = orgs[0];
 
     let paymentStatus: PaymentStatus;
     switch (subscription.status) {
@@ -85,16 +84,15 @@ export class StripeWebhookService {
   }
 
   private async handleSubscriptionDeleted(subscription: any): Promise<void> {
-    const orgs = await this.organizationService.getAll({
+    const org = await this.organizationService.getOneBy({
       stripeSubscriptionId: subscription.id,
     });
-    if (!orgs.length) {
+    if (!org) {
       this.logger.warn(
         `No org found for subscription ${subscription.id} (subscription.deleted)`,
       );
       return;
     }
-    const org = orgs[0];
     await this.organizationService.updateFields(org.id, {
       paymentStatus: PaymentStatus.CANCELLED,
       isActive: false,
@@ -109,16 +107,15 @@ export class StripeWebhookService {
       );
       return;
     }
-    const orgs = await this.organizationService.getAll({
+    const org = await this.organizationService.getOneBy({
       stripeCustomerId: invoice.customer,
     });
-    if (!orgs.length) {
+    if (!org) {
       this.logger.warn(
         `No org found for customer ${invoice.customer} (invoice.payment_failed)`,
       );
       return;
     }
-    const org = orgs[0];
     await this.organizationService.updateFields(org.id, {
       paymentStatus: PaymentStatus.SUSPENDED,
     });

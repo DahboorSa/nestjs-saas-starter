@@ -27,6 +27,10 @@ export class OrganizationService {
     return this.organizationRepository.find({ where });
   }
 
+  async getOneBy(where: any): Promise<OrganizationEntity | null> {
+    return this.organizationRepository.findOne({ where });
+  }
+
   async getByName(name: string): Promise<OrganizationEntity | null> {
     return this.organizationRepository.findOne({ where: { name } });
   }
