@@ -11,11 +11,11 @@ type EmailTemplate = (data: any) => { subject: string; text: string };
 const buildTemplates = (baseUrl: string): Record<string, EmailTemplate> => ({
   'welcome.email': ({ token }) => ({
     subject: 'One Step Closer to SaaS! Please verify your email',
-    text: `Please click the link below to verify your email address:\n${baseUrl}/auth/verify-email?token=${token}`,
+    text: `Please click the link below to verify your email address:\n${baseUrl}/verify-email?token=${token}`,
   }),
   'resend-verify.email': ({ token }) => ({
     subject: 'One Step Closer to SaaS! Please verify your email',
-    text: `Please click the link below to verify your email address:\n${baseUrl}/auth/verify-email?token=${token}`,
+    text: `Please click the link below to verify your email address:\n${baseUrl}/verify-email?token=${token}`,
   }),
   'invite.email': ({ token, orgName, inviterName, inviterEmail }) => ({
     subject: `You have been invited to join ${orgName}`,
@@ -23,11 +23,11 @@ const buildTemplates = (baseUrl: string): Record<string, EmailTemplate> => ({
   }),
   'forgot-password.email': ({ token }) => ({
     subject: 'Reset your password',
-    text: `Please click the link below to reset your password:\n${baseUrl}/auth/reset-password?token=${token}`,
+    text: `Please click the link below to reset your password:\n${baseUrl}/reset-password?token=${token}`,
   }),
   'change-email.email': ({ token }) => ({
     subject: 'Change your email address',
-    text: `Please click the link below to confirm your email address:\n${baseUrl}/users/me/email/confirm?token=${token}`,
+    text: `Please click the link below to confirm your email address:\n${baseUrl}/confirm-email?token=${token}`,
   }),
 });
 

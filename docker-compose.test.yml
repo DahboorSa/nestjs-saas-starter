@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  saas-db-test:
+    image: postgres:13.2-alpine
+    ports:
+      - '5433:5432'
+    environment:
+      - POSTGRES_USER=saas_user
+      - POSTGRES_PASSWORD=saas_password
+      - POSTGRES_DB=saas_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U saas_user -d saas_test']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  saas-redis-test:
+    image: redis:6.2-alpine
+    ports:
+      - '6380:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
