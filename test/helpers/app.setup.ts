@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
 import { EmailQueueService } from '../../src/jobs/queues/email.queue';
 import { EmailProcessor } from '../../src/jobs/processors/email.processor';
+import { StripeService } from '../../src/modules/stripe/stripe.service';
 import { PlanEntity } from '../../src/modules/plans/entities/plan.entity';
 import helmet from 'helmet';
 
@@ -11,6 +12,23 @@ import helmet from 'helmet';
 // Tokens are stored in Redis synchronously before any email job is queued,
 // so tests can still read them; the email itself is simply never sent.
 const noopEmailQueue = { add: async () => {} };
+
+// Stub Stripe — prevents real Stripe API calls during e2e tests.
+// Payment flow tests that need real Stripe are guarded by RUN_STRIPE_E2E=true.
+const mockStripeService = {
+  createCustomer: async () => ({ id: 'cus_test' }),
+  attachPaymentMethod: async () => ({}),
+  createSubscription: async () => ({ id: 'sub_test', status: 'active' }),
+  retrieveSubscription: async () => ({
+    id: 'sub_test',
+    status: 'active',
+    current_period_end: Math.floor(Date.now() / 1000) + 86400,
+    cancel_at_period_end: false,
+  }),
+  cancelSubscription: async () => ({}),
+  retrieveCustomer: async () => ({ id: 'cus_test' }),
+  constructWebhookEvent: () => null,
+};
 
 export async function createTestApp(): Promise<INestApplication> {
   const moduleFixture = await Test.createTestingModule({
@@ -20,6 +38,8 @@ export async function createTestApp(): Promise<INestApplication> {
     .useValue(noopEmailQueue)
     .overrideProvider(EmailProcessor)
     .useValue({ process: async () => {} })
+    .overrideProvider(StripeService)
+    .useValue(mockStripeService)
     .compile();
 
   const app = moduleFixture.createNestApplication({ rawBody: true });
