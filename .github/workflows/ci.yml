@@ -9,8 +9,8 @@ on:
       - main
 
 jobs:
-  lint-and-test:
-    name: Lint & Unit Tests
+  ci:
+    name: CI
     runs-on: ubuntu-latest
 
     steps:
@@ -31,3 +31,6 @@ jobs:
 
       - name: Unit tests
         run: yarn test
+
+      - name: E2E tests
+        run: yarn test:e2e

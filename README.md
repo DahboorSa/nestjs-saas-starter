@@ -70,41 +70,41 @@ yarn start:dev
 
 ## Environment Variables
 
-| Variable                | Description                             | Example                 |
-| ----------------------- | --------------------------------------- | ----------------------- |
-| `DB_HOST`               | Postgres host                           | `localhost`             |
-| `DB_PORT`               | Postgres port                           | `5432`                  |
-| `DB_USER`               | Postgres user                           | `saas_user`             |
-| `DB_PASSWORD`           | Postgres password                       | `saas_password`         |
-| `DB_NAME`               | Postgres database                       | `saas_dev`              |
-| `DB_SYNC`               | Auto-sync entities (never true in prod) | `false`                 |
-| `DB_LOGGING`            | Enable query logging                    | `false`                 |
-| `REDIS_HOST`            | Redis host                              | `localhost`             |
-| `REDIS_PORT`            | Redis port                              | `6379`                  |
-| `JWT_SECRET`            | Access token secret                     | `your_secret`           |
-| `JWT_EXPIRES_IN`        | Access token TTL                        | `15m`                   |
-| `JWT_REFRESH_SECRET`    | Refresh token secret                    | `your_refresh_secret`   |
-| `JWT_REFRESH_EXPIRY`    | Refresh token TTL                       | `7d`                    |
-| `REFRESH_TOKEN_TTL`     | Refresh token Redis TTL (seconds)       | `604800`                |
-| `API_KEY_PREFIX`        | API key prefix                          | `sk_live_`              |
-| `API_KEY_EXPIRATION`    | API key cache TTL (seconds)             | `300`                   |
-| `INVITE_TOKEN_TTL`      | Invitation token TTL (seconds)          | `172800`                |
-| `TTL_EXPIRATION`        | General token TTL (seconds)             | `86400`                 |
-| `THROTTLER_TTL`         | Rate limit window (ms)                  | `60000`                 |
-| `THROTTLER_LIMIT`       | Max requests per window                 | `600`                   |
-| `THROTTLER_AUTH_LIMIT`  | Max auth requests per window            | `100`                   |
-| `STRIPE_SECRET_KEY`      | Stripe secret key                                  | `sk_test_...`           |
-| `STRIPE_WEBHOOK_SECRET`  | Stripe webhook signing secret                      | `whsec_...`             |
-| `MAILTRAP_API_KEY`       | Mailtrap API key (dev/QA only)                     | `your_key`              |
-| `MAILTRAP_TEST_INBOX_ID` | Mailtrap inbox ID (dev/QA only)                    | `123456`                |
-| `MAILTRAP_FROM_EMAIL`    | Sender email for Mailtrap (dev/QA only)            | `noreply@example.com`   |
-| `MAILTRAP_FROM_NAME`     | Sender name for Mailtrap (dev/QA only)             | `SaaS App`              |
-| `AWS_ACCESS_KEY_ID`      | AWS access key (production only)                   | `AKIA...`               |
-| `AWS_SECRET_ACCESS_KEY`  | AWS secret key (production only)                   | `your_secret`           |
-| `AWS_REGION`             | AWS region for SES (production only)               | `us-east-1`             |
-| `SES_FROM_EMAIL`         | Verified sender email in SES (production only)     | `noreply@example.com`   |
-| `URL_PATH`              | Base URL for email links                | `http://localhost:3000` |
-| `ORIGIN`                | CORS allowed origins (comma-separated)  | `http://localhost:3000` |
+| Variable                 | Description                                         | Example                 |
+| ------------------------ | --------------------------------------------------- | ----------------------- |
+| `DB_HOST`                | Postgres host                                       | `localhost`             |
+| `DB_PORT`                | Postgres port                                       | `5432`                  |
+| `DB_USER`                | Postgres user                                       | `saas_user`             |
+| `DB_PASSWORD`            | Postgres password                                   | `saas_password`         |
+| `DB_NAME`                | Postgres database                                   | `saas_dev`              |
+| `DB_SYNC`                | Auto-sync entities (never true in prod)             | `false`                 |
+| `DB_LOGGING`             | Enable query logging                                | `false`                 |
+| `REDIS_HOST`             | Redis host                                          | `localhost`             |
+| `REDIS_PORT`             | Redis port                                          | `6379`                  |
+| `JWT_SECRET`             | Access token secret                                 | `your_secret`           |
+| `JWT_EXPIRES_IN`         | Access token TTL                                    | `15m`                   |
+| `JWT_REFRESH_SECRET`     | Refresh token secret                                | `your_refresh_secret`   |
+| `JWT_REFRESH_EXPIRY`     | Refresh token TTL                                   | `7d`                    |
+| `REFRESH_TOKEN_TTL`      | Refresh token Redis TTL (seconds)                   | `604800`                |
+| `API_KEY_PREFIX`         | API key prefix                                      | `sk_live_`              |
+| `API_KEY_EXPIRATION`     | API key cache TTL (seconds)                         | `300`                   |
+| `INVITE_TOKEN_TTL`       | Invitation token TTL (seconds)                      | `172800`                |
+| `TTL_EXPIRATION`         | General token TTL (seconds)                         | `86400`                 |
+| `THROTTLER_TTL`          | Rate limit window (ms)                              | `60000`                 |
+| `THROTTLER_LIMIT`        | Max requests per window                             | `600`                   |
+| `THROTTLER_AUTH_LIMIT`   | Max auth requests per window                        | `100`                   |
+| `STRIPE_SECRET_KEY`      | Stripe secret key                                   | `sk_test_...`           |
+| `STRIPE_WEBHOOK_SECRET`  | Stripe webhook signing secret                       | `whsec_...`             |
+| `MAILTRAP_API_KEY`       | Mailtrap API key (dev/QA only)                      | `your_key`              |
+| `MAILTRAP_TEST_INBOX_ID` | Mailtrap inbox ID (dev/QA only)                     | `123456`                |
+| `MAILTRAP_FROM_EMAIL`    | Sender email for Mailtrap (dev/QA only)             | `noreply@example.com`   |
+| `MAILTRAP_FROM_NAME`     | Sender name for Mailtrap (dev/QA only)              | `SaaS App`              |
+| `AWS_ACCESS_KEY_ID`      | AWS access key (production only)                    | `AKIA...`               |
+| `AWS_SECRET_ACCESS_KEY`  | AWS secret key (production only)                    | `your_secret`           |
+| `AWS_REGION`             | AWS region for SES (production only)                | `us-east-1`             |
+| `SES_FROM_EMAIL`         | Verified sender email in SES (production only)      | `noreply@example.com`   |
+| `URL_PATH`               | Base URL for email links (use frontend URL in prod) | `http://localhost:5173` |
+| `ORIGIN`                 | CORS allowed origins (comma-separated)              | `http://localhost:3000` |
 
 > **Important**: Always set `DB_SYNC=false` before running migrations. Never use `DB_SYNC=true` in production.
 
@@ -285,22 +285,22 @@ Two parallel strategies:
 
 ### Decorators
 
-| Decorator                | Effect                                          |
-| ------------------------ | ----------------------------------------------- |
-| `@Public()`              | Bypass authentication entirely                  |
-| `@JwtOnly()`             | Block API key auth, require JWT                 |
-| `@Roles(UserRole.OWNER)` | Enforce role RBAC                               |
-| `@CurrentUser()`         | Extract current user from request               |
-| `@AuditContext()`        | Extract audit context (userId, orgId, email)    |
-| `@SkipUsageTracking()`   | Skip usage tracking interceptor for the route   |
+| Decorator                | Effect                                        |
+| ------------------------ | --------------------------------------------- |
+| `@Public()`              | Bypass authentication entirely                |
+| `@JwtOnly()`             | Block API key auth, require JWT               |
+| `@Roles(UserRole.OWNER)` | Enforce role RBAC                             |
+| `@CurrentUser()`         | Extract current user from request             |
+| `@AuditContext()`        | Extract audit context (userId, orgId, email)  |
+| `@SkipUsageTracking()`   | Skip usage tracking interceptor for the route |
 
 ### Interceptors
 
-| Interceptor                      | Effect                                                    |
-| -------------------------------- | --------------------------------------------------------- |
-| `UsageTrackerInterceptor`        | Tracks API call usage per org, enforces plan limits       |
-| `WebhookTrackerInterceptor`      | Dispatches webhook events after successful mutations      |
-| `MemberInviteTrackerInterceptor` | Fires `member.invited` webhook event on invitation send   |
+| Interceptor                      | Effect                                                  |
+| -------------------------------- | ------------------------------------------------------- |
+| `UsageTrackerInterceptor`        | Tracks API call usage per org, enforces plan limits     |
+| `WebhookTrackerInterceptor`      | Dispatches webhook events after successful mutations    |
+| `MemberInviteTrackerInterceptor` | Fires `member.invited` webhook event on invitation send |
 
 ### Token Flow
 
@@ -519,7 +519,7 @@ src/
 - [ ] Pagination + filtering on list endpoints
 - [x] Unit tests for all services and controllers
 - [x] SOLID principles applied (SRP, OCP, DIP refactoring)
-- [ ] E2E tests for all API endpoints
+- [x] E2E tests for all API endpoints
 
 ---
 
