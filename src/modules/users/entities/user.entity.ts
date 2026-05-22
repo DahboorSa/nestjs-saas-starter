@@ -20,28 +20,28 @@ export class UserEntity {
   id: string;
   @Column({ unique: true })
   email: string;
-  @Column()
+  @Column({ name: 'password_hash' })
   passwordHash: string;
   @Column({
     type: 'enum',
     enum: UserRole,
   })
   role: UserRole;
-  @Column({ default: false })
+  @Column({ default: false, name: 'is_verified' })
   isVerified: boolean;
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'last_login_at' })
   lastLoginAt: Date;
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-  @Column({ default: true })
+  @Column({ default: true, name: 'is_active' })
   isActive: boolean;
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'first_name' })
   firstName: string;
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'last_name' })
   lastName: string;
-  @Column({ nullable: true, unique: true })
+  @Column({ nullable: true, unique: true, name: 'user_name' })
   userName: string;
 
   @OneToMany(() => AuditLogEntity, (auditLog) => auditLog.user)
@@ -55,6 +55,6 @@ export class UserEntity {
 
   @Index()
   @ManyToOne(() => OrganizationEntity, (organization) => organization.users)
-  @JoinColumn({ name: 'organizationId' })
+  @JoinColumn({ name: 'organization_id' })
   organization: OrganizationEntity;
 }

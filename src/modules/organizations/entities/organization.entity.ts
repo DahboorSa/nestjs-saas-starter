@@ -25,23 +25,24 @@ export class OrganizationEntity {
   name: string;
   @Column({ unique: true })
   slug: string;
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'stripe_customer_id' })
   stripeCustomerId: string;
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'stripe_subscription_id' })
   stripeSubscriptionId: string;
   @Column({
     type: 'enum',
     enum: PaymentStatus,
     default: PaymentStatus.FREE,
+    name: 'payment_status',
   })
   paymentStatus: PaymentStatus;
-  @Column({ default: true })
+  @Column({ default: true, name: 'is_active' })
   isActive: boolean; // owner can deactivate / admin can suspend
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'trial_ends_at' })
   trialEndsAt: Date;
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @OneToMany(() => UserEntity, (user) => user.organization)
@@ -75,6 +76,6 @@ export class OrganizationEntity {
   auditLogs: AuditLogEntity[];
 
   @ManyToOne(() => PlanEntity, (plan) => plan.organizations)
-  @JoinColumn({ name: 'planId' })
+  @JoinColumn({ name: 'plan_id' })
   plan: PlanEntity;
 }

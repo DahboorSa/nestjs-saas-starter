@@ -15,9 +15,9 @@ export class PlanEntity {
   name: string;
   @Column('int')
   price: number;
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'stripe_price_id' })
   stripePriceId: string;
-  @Column({ type: 'int', default: 0 })
+  @Column({ type: 'int', default: 0, name: 'trial_days' })
   trialDays: number;
   @Column({ type: 'jsonb' })
   limits: {
@@ -34,11 +34,11 @@ export class PlanEntity {
     export: boolean;
     customDomain: boolean;
   };
-  @Column({ default: true })
+  @Column({ default: true, name: 'is_active' })
   isActive: boolean;
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
-  @Column({ nullable: true, default: false })
+  @Column({ nullable: true, default: false, name: 'is_default' })
   isDefault: boolean;
 
   @OneToMany(() => OrganizationEntity, (organization) => organization.plan)

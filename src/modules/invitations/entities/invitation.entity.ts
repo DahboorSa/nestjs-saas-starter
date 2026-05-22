@@ -29,9 +29,9 @@ export class InvitationEntity {
     enum: InvitationStatus,
   })
   status: InvitationStatus;
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp', name: 'expires_at' })
   expiresAt: Date;
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @Index()
@@ -39,10 +39,10 @@ export class InvitationEntity {
     () => OrganizationEntity,
     (organization) => organization.invitations,
   )
-  @JoinColumn({ name: 'organizationId' })
+  @JoinColumn({ name: 'organization_id' })
   organization: OrganizationEntity;
 
   @ManyToOne(() => UserEntity, (userEntity) => userEntity.invitations)
-  @JoinColumn({ name: 'invitedByUserId' })
+  @JoinColumn({ name: 'invited_by_user_id' })
   invitedBy: UserEntity;
 }

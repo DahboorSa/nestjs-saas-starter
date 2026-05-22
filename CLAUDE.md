@@ -226,6 +226,7 @@ Four cron jobs registered in `src/jobs/schedulers/` via `SchedulerModule`:
 | `1775615418200-AddStripeFields` | `stripeCustomerId`, `stripeSubscriptionId`, `stripePriceId` on org |
 | `1775699843509-AddTrialDays` | `trialEndsAt` on org; `trialDays` on plan |
 | `1776510471436-addMissingEventKey` | Adds missing `eventKey` field to webhook endpoints |
+| `1780000000000-SnakeCaseColumns` | Renames all camelCase DB columns to snake_case across all 9 tables |
 
 ### Seeders
 
