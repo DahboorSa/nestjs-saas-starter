@@ -6,6 +6,73 @@ A production-ready, multi-tenant SaaS backend built with NestJS. Includes authen
 
 ---
 
+## API Workflow
+
+### User Journey
+
+```mermaid
+flowchart TD
+    A([Visitor]) --> B[POST /auth/register]
+    B --> C[POST /auth/verify-email]
+    C --> D[POST /auth/login]
+    D --> E([Authenticated User])
+
+    E --> F[GET /users/me]
+    E --> G[GET /organizations/me]
+    E --> H[GET /plans]
+
+    H --> I["POST /payments/subscription\n(OWNER only)"]
+    I --> J[Stripe processes payment]
+    J --> K["POST /stripe/webhook\n(internal)"]
+    K --> L[Org plan updated]
+
+    E --> M["POST /invitations\n(OWNER · ADMIN)"]
+    M --> N([Invitee receives email])
+    N --> O["POST /invitations/accept\n(public token)"]
+    O --> D
+
+    E --> P["POST /api-keys\n(OWNER · ADMIN)"]
+    P --> Q([API consumer])
+    Q --> R[Any endpoint via X-API-Key header]
+
+    E --> S["POST /webhooks\n(OWNER · ADMIN)"]
+    S --> T([Your server receives signed events])
+
+    E --> U[POST /auth/forgot-password]
+    U --> V["POST /auth/reset-password\n(public token)"]
+    V --> D
+```
+
+### Endpoint Reference
+
+| Screen / Feature | Method | Endpoint | Auth |
+|-----------------|--------|----------|------|
+| Register | POST | `/auth/register` | Public |
+| Verify Email | POST | `/auth/verify-email` | Public (token) |
+| Login | POST | `/auth/login` | Public |
+| Forgot Password | POST | `/auth/forgot-password` | Public |
+| Reset Password | POST | `/auth/reset-password` | Public (token) |
+| Refresh Token | POST | `/auth/refresh-token` | Public |
+| Resend Verification | POST | `/auth/resend-verification` | Public |
+| Logout | POST | `/auth/logout` | JWT |
+| My Profile | GET · PATCH | `/users/me` | JWT |
+| Change Password | POST | `/auth/change-password` | JWT |
+| Change Email | POST · POST | `/users/me/email` · `/users/me/email/confirm` | JWT · Public (token) |
+| My Organization | GET · PUT | `/organizations/me` | JWT · OWNER/ADMIN |
+| Members List | GET | `/organizations/members` | JWT |
+| Change Member Role | PUT | `/organizations/members/:userId/role` | OWNER |
+| Remove Member | DELETE | `/organizations/members/:userId` | OWNER · ADMIN |
+| Invite Members | GET · POST | `/invitations` | JWT · OWNER/ADMIN |
+| Accept Invite | POST | `/invitations/accept` | Public (token) |
+| Plans Listing | GET | `/plans` | Public |
+| Subscription | GET · POST | `/payments/subscription` | OWNER |
+| API Keys | GET · POST · DELETE | `/api-keys` · `/api-keys/:id` | OWNER · ADMIN |
+| Webhooks | GET · POST · DELETE | `/webhooks` · `/webhooks/:id` | OWNER · ADMIN |
+| Webhook Deliveries | GET | `/webhooks/:id/deliveries` | OWNER · ADMIN |
+| Usage Stats | GET | `/usage` | JWT |
+
+---
+
 ## Tech Stack
 
 - **Framework**: NestJS (Node.js / TypeScript)
