@@ -22,9 +22,9 @@ export class WebhookEndpointEntity {
   secret: string; //→ used to sign the payload (HMAC) so they can verify it came from you
   @Column({ type: 'jsonb' })
   events: WebhookEvent[];
-  @Column({ default: true })
+  @Column({ default: true, name: 'is_active' })
   isActive: boolean;
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @OneToMany(
@@ -38,6 +38,6 @@ export class WebhookEndpointEntity {
     (organization) => organization.webhookEndpoints,
   )
   @Index()
-  @JoinColumn({ name: 'organizationId' })
+  @JoinColumn({ name: 'organization_id' })
   organization: OrganizationEntity;
 }

@@ -18,24 +18,24 @@ export class ApiKeyEntity {
   @Column()
   name: string;
   @Index()
-  @Column()
+  @Column({ name: 'key_hash' })
   keyHash: string;
-  @Column()
+  @Column({ name: 'key_prefix' })
   keyPrefix: string;
   @Column({ type: 'jsonb' })
   scopes: string[];
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'last_used_at' })
   lastUsedAt: Date;
-  @Column({ default: true })
+  @Column({ default: true, name: 'is_active' })
   isActive: boolean;
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'expires_at' })
   expiresAt: Date;
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @Index()
   @ManyToOne(() => OrganizationEntity, (organization) => organization.apiKeys)
-  @JoinColumn({ name: 'organizationId' })
+  @JoinColumn({ name: 'organization_id' })
   organization: OrganizationEntity;
 
   @OneToMany(() => AuditLogEntity, (auditLogEntity) => auditLogEntity.apiKey)

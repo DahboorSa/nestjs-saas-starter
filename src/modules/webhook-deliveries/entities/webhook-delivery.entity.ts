@@ -18,7 +18,7 @@ export class WebhookDeliveryEntity {
   event: string;
   @Column({ type: 'jsonb' })
   payload: any;
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'status_code' })
   statusCode: number | null;
   @Column()
   attempt: number;
@@ -27,14 +27,14 @@ export class WebhookDeliveryEntity {
     enum: DeliveryStatus,
   })
   status: DeliveryStatus;
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'delivered_at' })
   deliveredAt: Date;
 
   @ManyToOne(
     () => WebhookEndpointEntity,
     (webhookEndpointEntity) => webhookEndpointEntity.webhookDeliveries,
   )
-  @JoinColumn({ name: 'webhookEndpointId' })
+  @JoinColumn({ name: 'webhook_endpoint_id' })
   @Index()
   webhookEndpoint: WebhookEndpointEntity;
 }

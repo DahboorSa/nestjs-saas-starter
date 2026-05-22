@@ -25,10 +25,10 @@ export class UsageRecordEntity {
   value: number;
   @Column()
   period: string;
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @Column()
+  @Column({ name: 'organization_id' })
   organizationId: string;
 
   @Index()
@@ -36,6 +36,6 @@ export class UsageRecordEntity {
     () => OrganizationEntity,
     (organization) => organization.usageRecords,
   )
-  @JoinColumn({ name: 'organizationId' })
+  @JoinColumn({ name: 'organization_id' })
   organization: OrganizationEntity;
 }
