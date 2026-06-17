@@ -85,12 +85,13 @@ describe('InvitationController', () => {
   // ─── POST /invitations ────────────────────────────────────────────────────────
 
   describe('sendInvitations', () => {
-    it('should send invitation and return success message', async () => {
+    it('should send invitations and return results', async () => {
       const body = {
-        email: 'invite@example.com',
-        role: UserRole.MEMBER,
+        invitations: [{ email: 'invite@example.com', role: UserRole.MEMBER }],
       } as any;
-      const expected = { message: 'Invitation sent successfully' };
+      const expected = {
+        results: [{ email: 'invite@example.com', success: true }],
+      };
       mockInvitationService.send.mockResolvedValue(expected);
 
       const result = await controller.sendInvitations(
