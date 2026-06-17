@@ -25,14 +25,18 @@ describe('Invitations (e2e)', () => {
   });
 
   describe('POST /invitations', () => {
-    it('returns 201 and sends invitation to email', async () => {
+    it('returns 201 and sends invitations', async () => {
       const res = await request(server)
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ email: uniqueEmail('invite'), role: UserRole.MEMBER });
+        .send({
+          invitations: [{ email: uniqueEmail('invite'), role: UserRole.MEMBER }],
+        });
 
       expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('message');
+      expect(res.body).toHaveProperty('results');
+      expect(Array.isArray(res.body.results)).toBe(true);
+      expect(res.body.results[0]).toMatchObject({ success: true });
     });
   });
 
@@ -42,7 +46,9 @@ describe('Invitations (e2e)', () => {
       await request(server)
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ email: uniqueEmail('list'), role: UserRole.MEMBER });
+        .send({
+          invitations: [{ email: uniqueEmail('list'), role: UserRole.MEMBER }],
+        });
 
       const res = await request(server)
         .get('/invitations')

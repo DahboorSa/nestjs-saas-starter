@@ -158,7 +158,7 @@ export async function sendInvitation(
   const inviteRes = await request(server)
     .post('/invitations')
     .set('Authorization', `Bearer ${accessToken}`)
-    .send({ email, role: UserRole.MEMBER });
+    .send({ invitations: [{ email, role: UserRole.MEMBER }] });
 
   if (inviteRes.status !== 201 && inviteRes.status !== 200) {
     throw new Error(

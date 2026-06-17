@@ -17,7 +17,7 @@ import {
   Roles,
 } from '../../common/decorators';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
-import { CreateInvitationDto, AcceptInvitationDto } from './dto';
+import { CreateInvitationsDto, AcceptInvitationDto } from './dto';
 import { InvitationStatus, UserRole } from '../../enums';
 import { MemberInviteTrackerInterceptor } from '../../modules/invitations/interceptors/member-invite-tracker.interceptor';
 
@@ -40,7 +40,7 @@ export class InvitationController {
   sendInvitations(
     @AuditContext() auditContext: AuditContextDto,
     @CurrentUser() user: UserInfoDto,
-    @Body() body: CreateInvitationDto,
+    @Body() body: CreateInvitationsDto,
   ) {
     return this.invitationService.send(auditContext, user, body);
   }

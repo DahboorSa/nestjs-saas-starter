@@ -15,7 +15,11 @@ import {
   UserRole,
   WebhookEvent,
 } from '../../enums';
-import { AcceptInvitationDto, CreateInvitationDto } from './dto';
+import {
+  AcceptInvitationDto,
+  CreateInvitationsDto,
+  InvitationItemDto,
+} from './dto';
 import { randomBytes } from 'crypto';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import { ConfigService } from '@nestjs/config';
@@ -103,71 +107,91 @@ export class InvitationService {
   async send(
     auditContext: AuditContextDto,
     user: UserInfoDto,
-    body: CreateInvitationDto,
+    body: CreateInvitationsDto,
   ) {
     const { orgId, userId } = user;
-    const userExists = await this.userService.getByEmail(body.email, true);
-    if (userExists?.isActive) {
-      if (userExists.organization.id === user.orgId)
-        throw new ConflictException('User already exists in this organization');
-      else throw new ConflictException('User already exists');
-    }
-    const { email } = body;
-    const pendingInvitation = await this.getPendingInvitationByEmail(email);
-    if (pendingInvitation)
-      throw new ConflictException('Invitation already sent');
-
-    const token = randomBytes(32).toString('hex');
-
-    const userInfo = await this.userService.getById(user.userId, orgId, true);
+    const userInfo = await this.userService.getById(userId, orgId, true);
     const { organization } = userInfo;
-    const expiresAt = new Date(
-      Date.now() + this.configService.get<number>('INVITE_TOKEN_TTL') * 1000,
+
+    const results = await Promise.all(
+      body.invitations.map((item) =>
+        this.sendOne(auditContext, user, userInfo, organization, item),
+      ),
     );
-    const invitation = await this.create({
-      email,
-      role: body.role,
-      token,
-      organization,
-      invitedBy: userInfo,
-      status: InvitationStatus.PENDING,
-      expiresAt,
-    });
-    const { id: invitationId } = invitation;
-    await this.cacheService.set(
-      `invite:${token}`,
-      JSON.stringify({
-        invitationId,
+
+    return { results };
+  }
+
+  private async sendOne(
+    auditContext: AuditContextDto,
+    user: UserInfoDto,
+    userInfo: UserEntity,
+    organization: OrganizationEntity,
+    item: InvitationItemDto,
+  ): Promise<{ email: string; success: boolean; error?: string }> {
+    const { orgId, userId } = user;
+    const { email, role } = item;
+
+    try {
+      const userExists = await this.userService.getByEmail(email, true);
+      if (userExists?.isActive) {
+        const error =
+          userExists.organization.id === orgId
+            ? 'User already exists in this organization'
+            : 'User already exists';
+        return { email, success: false, error };
+      }
+
+      const pendingInvitation = await this.getPendingInvitationByEmail(email);
+      if (pendingInvitation)
+        return { email, success: false, error: 'Invitation already sent' };
+
+      const token = randomBytes(32).toString('hex');
+      const expiresAt = new Date(
+        Date.now() + this.configService.get<number>('INVITE_TOKEN_TTL') * 1000,
+      );
+
+      const invitation = await this.create({
         email,
-        orgId,
-        role: body.role,
+        role,
+        token,
+        organization,
+        invitedBy: userInfo,
+        status: InvitationStatus.PENDING,
         expiresAt,
-      }),
-      this.configService.get<number>('INVITE_TOKEN_TTL'),
-    );
+      });
 
-    await this.emailQueue.add('invite.email', {
-      userId,
-      orgName: organization.name,
-      inviterEmail: user.email,
-      inviterName: userInfo.firstName,
-      email,
-      token,
-    });
+      const { id: invitationId } = invitation;
+      await this.cacheService.set(
+        `invite:${token}`,
+        JSON.stringify({ invitationId, email, orgId, role, expiresAt }),
+        this.configService.get<number>('INVITE_TOKEN_TTL'),
+      );
 
-    this.auditAndDispatch(
-      auditContext,
-      AuditAction.MEMBER_INVITED,
-      WebhookEvent.MEMBER_INVITED,
-      orgId,
-      invitationId.toString(),
-      organization,
-      { invitedEmail: email, role: body.role, invitedBy: user.email },
-    );
+      await this.emailQueue.add('invite.email', {
+        userId,
+        orgName: organization.name,
+        inviterEmail: user.email,
+        inviterName: userInfo.firstName,
+        email,
+        token,
+      });
 
-    return {
-      message: 'Invitation sent successfully',
-    };
+      this.auditAndDispatch(
+        auditContext,
+        AuditAction.MEMBER_INVITED,
+        WebhookEvent.MEMBER_INVITED,
+        orgId,
+        invitationId.toString(),
+        organization,
+        { invitedEmail: email, role, invitedBy: user.email },
+      );
+
+      return { email, success: true };
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'Unexpected error';
+      return { email, success: false, error };
+    }
   }
 
   async acceptInvitation(

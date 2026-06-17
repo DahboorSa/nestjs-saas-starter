@@ -169,58 +169,99 @@ describe('InvitationService', () => {
   });
 
   describe('send', () => {
-    const sendDto = { email: 'invite@example.com', role: UserRole.MEMBER };
+    const sendDto = {
+      invitations: [{ email: 'invite@example.com', role: UserRole.MEMBER }],
+    };
 
-    it('should throw ConflictException if user already exists in same org', async () => {
+    beforeEach(() => {
+      mockUserService.getById.mockResolvedValue(mockInviter);
+    });
+
+    it('should return failure if user already exists in same org', async () => {
       mockUserService.getByEmail.mockResolvedValue({
         isActive: true,
         organization: { id: 'org-1' },
       });
 
-      await expect(
-        service.send(auditContext as any, userInfo, sendDto as any),
-      ).rejects.toThrow(ConflictException);
+      const result = await service.send(auditContext as any, userInfo, sendDto as any);
+
+      expect(result.results[0]).toMatchObject({
+        email: 'invite@example.com',
+        success: false,
+      });
     });
 
-    it('should throw ConflictException if user already exists in different org', async () => {
+    it('should return failure if user already exists in different org', async () => {
       mockUserService.getByEmail.mockResolvedValue({
         isActive: true,
         organization: { id: 'other-org' },
       });
 
-      await expect(
-        service.send(auditContext as any, userInfo, sendDto as any),
-      ).rejects.toThrow(ConflictException);
+      const result = await service.send(auditContext as any, userInfo, sendDto as any);
+
+      expect(result.results[0]).toMatchObject({
+        email: 'invite@example.com',
+        success: false,
+      });
     });
 
-    it('should throw ConflictException if pending invitation already exists', async () => {
+    it('should return failure if pending invitation already exists', async () => {
       mockUserService.getByEmail.mockResolvedValue(null);
       mockInvitationRepository.findOne.mockResolvedValue(mockInvitation);
 
-      await expect(
-        service.send(auditContext as any, userInfo, sendDto as any),
-      ).rejects.toThrow(ConflictException);
+      const result = await service.send(auditContext as any, userInfo, sendDto as any);
+
+      expect(result.results[0]).toMatchObject({
+        email: 'invite@example.com',
+        success: false,
+        error: 'Invitation already sent',
+      });
     });
 
-    it('should send invitation and return success message', async () => {
+    it('should send invitations and return results', async () => {
       mockUserService.getByEmail.mockResolvedValue(null);
       mockInvitationRepository.findOne.mockResolvedValue(null);
-      mockUserService.getById.mockResolvedValue(mockInviter);
       mockInvitationRepository.create.mockReturnValue(mockInvitation);
       mockInvitationRepository.save.mockResolvedValue(mockInvitation);
       mockCacheService.set.mockResolvedValue(undefined);
 
-      const result = await service.send(
-        auditContext as any,
-        userInfo,
-        sendDto as any,
-      );
+      const result = await service.send(auditContext as any, userInfo, sendDto as any);
 
-      expect(result).toEqual({ message: 'Invitation sent successfully' });
+      expect(result.results[0]).toMatchObject({
+        email: 'invite@example.com',
+        success: true,
+      });
       expect(mockEmailQueue.add).toHaveBeenCalledWith(
         'invite.email',
         expect.any(Object),
       );
+    });
+
+    it('should handle a batch with mixed success and failure', async () => {
+      const batchDto = {
+        invitations: [
+          { email: 'ok@example.com', role: UserRole.MEMBER },
+          { email: 'dup@example.com', role: UserRole.MEMBER },
+        ],
+      };
+
+      mockUserService.getByEmail
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+
+      mockInvitationRepository.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(mockInvitation);
+
+      mockInvitationRepository.create.mockReturnValue(mockInvitation);
+      mockInvitationRepository.save.mockResolvedValue(mockInvitation);
+      mockCacheService.set.mockResolvedValue(undefined);
+
+      const result = await service.send(auditContext as any, userInfo, batchDto as any);
+
+      expect(result.results).toHaveLength(2);
+      expect(result.results[0]).toMatchObject({ email: 'ok@example.com', success: true });
+      expect(result.results[1]).toMatchObject({ email: 'dup@example.com', success: false });
     });
   });
 
