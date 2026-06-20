@@ -156,6 +156,7 @@ describe('InvitationService', () => {
           status: InvitationStatus.PENDING,
           organization: { id: 'org-1' },
         },
+        relations: ['invitedBy'],
       });
     });
 
@@ -181,7 +182,11 @@ describe('InvitationService', () => {
         organization: { id: 'org-1' },
       });
 
-      const result = await service.send(auditContext as any, userInfo, sendDto as any);
+      const result = await service.send(
+        auditContext as any,
+        userInfo,
+        sendDto as any,
+      );
 
       expect(result.results[0]).toMatchObject({
         email: 'invite@example.com',
@@ -195,7 +200,11 @@ describe('InvitationService', () => {
         organization: { id: 'other-org' },
       });
 
-      const result = await service.send(auditContext as any, userInfo, sendDto as any);
+      const result = await service.send(
+        auditContext as any,
+        userInfo,
+        sendDto as any,
+      );
 
       expect(result.results[0]).toMatchObject({
         email: 'invite@example.com',
@@ -207,7 +216,11 @@ describe('InvitationService', () => {
       mockUserService.getByEmail.mockResolvedValue(null);
       mockInvitationRepository.findOne.mockResolvedValue(mockInvitation);
 
-      const result = await service.send(auditContext as any, userInfo, sendDto as any);
+      const result = await service.send(
+        auditContext as any,
+        userInfo,
+        sendDto as any,
+      );
 
       expect(result.results[0]).toMatchObject({
         email: 'invite@example.com',
@@ -223,7 +236,11 @@ describe('InvitationService', () => {
       mockInvitationRepository.save.mockResolvedValue(mockInvitation);
       mockCacheService.set.mockResolvedValue(undefined);
 
-      const result = await service.send(auditContext as any, userInfo, sendDto as any);
+      const result = await service.send(
+        auditContext as any,
+        userInfo,
+        sendDto as any,
+      );
 
       expect(result.results[0]).toMatchObject({
         email: 'invite@example.com',
@@ -253,11 +270,21 @@ describe('InvitationService', () => {
       mockInvitationRepository.save.mockResolvedValue(mockInvitation);
       mockCacheService.set.mockResolvedValue(undefined);
 
-      const result = await service.send(auditContext as any, userInfo, batchDto as any);
+      const result = await service.send(
+        auditContext as any,
+        userInfo,
+        batchDto as any,
+      );
 
       expect(result.results).toHaveLength(2);
-      expect(result.results[0]).toMatchObject({ email: 'ok@example.com', success: true });
-      expect(result.results[1]).toMatchObject({ email: 'dup@example.com', success: false });
+      expect(result.results[0]).toMatchObject({
+        email: 'ok@example.com',
+        success: true,
+      });
+      expect(result.results[1]).toMatchObject({
+        email: 'dup@example.com',
+        success: false,
+      });
     });
   });
 
