@@ -17,7 +17,7 @@ import {
   Roles,
 } from '../../common/decorators';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
-import { CreateInvitationsDto, AcceptInvitationDto } from './dto';
+import { InvitationItemDto, AcceptInvitationDto } from './dto';
 import { InvitationStatus, UserRole } from '../../enums';
 import { MemberInviteTrackerInterceptor } from '../../modules/invitations/interceptors/member-invite-tracker.interceptor';
 
@@ -28,7 +28,7 @@ export class InvitationController {
   @Get()
   getList(
     @CurrentUser() user: UserInfoDto,
-    @Query('status') status: InvitationStatus = InvitationStatus.PENDING,
+    @Query('status') status: InvitationStatus,
   ) {
     return this.invitationService.getList(user, status);
   }
@@ -40,7 +40,7 @@ export class InvitationController {
   sendInvitations(
     @AuditContext() auditContext: AuditContextDto,
     @CurrentUser() user: UserInfoDto,
-    @Body() body: CreateInvitationsDto,
+    @Body() body: InvitationItemDto[],
   ) {
     return this.invitationService.send(auditContext, user, body);
   }

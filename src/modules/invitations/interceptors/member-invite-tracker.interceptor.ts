@@ -15,7 +15,7 @@ export class MemberInviteTrackerInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
 
-    const batchSize = req.body?.invitations?.length ?? 1;
+    const batchSize = Array.isArray(req.body) ? req.body.length : 1;
 
     return from(this.organizationService.getMemberLimitInfo(req.user)).pipe(
       switchMap(({ plan, count }) => {

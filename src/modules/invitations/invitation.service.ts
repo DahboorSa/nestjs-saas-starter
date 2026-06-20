@@ -15,11 +15,7 @@ import {
   UserRole,
   WebhookEvent,
 } from '../../enums';
-import {
-  AcceptInvitationDto,
-  CreateInvitationsDto,
-  InvitationItemDto,
-} from './dto';
+import { AcceptInvitationDto, InvitationItemDto } from './dto';
 import { randomBytes } from 'crypto';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import { ConfigService } from '@nestjs/config';
@@ -34,6 +30,12 @@ import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
 import { AuditLogService } from '../audit-logs/audit-log.service';
 import { WebhookDispatcherService } from '../webhook-dispatchers/webhook-dispatcher.service';
 
+export interface InvitationResponse extends Omit<
+  InvitationEntity,
+  'invitedBy' | 'organization' | 'id' | 'token'
+> {
+  invitedBy: string;
+}
 @Injectable()
 export class InvitationService {
   private readonly logger = new Logger(InvitationService.name);
@@ -49,6 +51,17 @@ export class InvitationService {
     private readonly auditLogService: AuditLogService,
     private readonly dispatcher: WebhookDispatcherService,
   ) {}
+
+  private mapInvitationData(user: InvitationEntity): InvitationResponse {
+    return {
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      expiresAt: user.expiresAt,
+      createdAt: user.createdAt,
+      invitedBy: user.invitedBy?.email,
+    };
+  }
   private auditAndDispatch(
     auditContext: AuditContextDto,
     action: AuditAction,
@@ -88,13 +101,15 @@ export class InvitationService {
 
   async getList(
     user: UserInfoDto,
-    status: InvitationStatus,
-  ): Promise<InvitationEntity[]> {
+    status?: InvitationStatus,
+  ): Promise<InvitationResponse[]> {
+    const statusFilter = status ? { status } : {};
     const list = await this.invitationRepository.find({
-      where: { status, organization: { id: user.orgId } },
+      where: { ...statusFilter, organization: { id: user.orgId } },
+      relations: ['invitedBy'],
     });
 
-    return list;
+    return list.map((invitation) => this.mapInvitationData(invitation));
   }
 
   async create(
@@ -107,14 +122,14 @@ export class InvitationService {
   async send(
     auditContext: AuditContextDto,
     user: UserInfoDto,
-    body: CreateInvitationsDto,
+    body: InvitationItemDto[],
   ) {
     const { orgId, userId } = user;
     const userInfo = await this.userService.getById(userId, orgId, true);
     const { organization } = userInfo;
 
     const results = await Promise.all(
-      body.invitations.map((item) =>
+      body.map((item) =>
         this.sendOne(auditContext, user, userInfo, organization, item),
       ),
     );

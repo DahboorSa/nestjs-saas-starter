@@ -29,9 +29,7 @@ describe('Invitations (e2e)', () => {
       const res = await request(server)
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({
-          invitations: [{ email: uniqueEmail('invite'), role: UserRole.MEMBER }],
-        });
+        .send([{ email: uniqueEmail('invite'), role: UserRole.MEMBER }]);
 
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty('results');
@@ -46,9 +44,7 @@ describe('Invitations (e2e)', () => {
       await request(server)
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({
-          invitations: [{ email: uniqueEmail('list'), role: UserRole.MEMBER }],
-        });
+        .send([{ email: uniqueEmail('list'), role: UserRole.MEMBER }]);
 
       const res = await request(server)
         .get('/invitations')
