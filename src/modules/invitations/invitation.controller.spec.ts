@@ -86,9 +86,9 @@ describe('InvitationController', () => {
 
   describe('sendInvitations', () => {
     it('should send invitations and return results', async () => {
-      const body = {
-        invitations: [{ email: 'invite@example.com', role: UserRole.MEMBER }],
-      } as any;
+      const body = [
+        { email: 'invite@example.com', role: UserRole.MEMBER },
+      ] as any;
       const expected = {
         results: [{ email: 'invite@example.com', success: true }],
       };

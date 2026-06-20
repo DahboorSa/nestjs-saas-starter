@@ -169,9 +169,7 @@ describe('InvitationService', () => {
   });
 
   describe('send', () => {
-    const sendDto = {
-      invitations: [{ email: 'invite@example.com', role: UserRole.MEMBER }],
-    };
+    const sendDto = [{ email: 'invite@example.com', role: UserRole.MEMBER }];
 
     beforeEach(() => {
       mockUserService.getById.mockResolvedValue(mockInviter);
@@ -238,12 +236,10 @@ describe('InvitationService', () => {
     });
 
     it('should handle a batch with mixed success and failure', async () => {
-      const batchDto = {
-        invitations: [
-          { email: 'ok@example.com', role: UserRole.MEMBER },
-          { email: 'dup@example.com', role: UserRole.MEMBER },
-        ],
-      };
+      const batchDto = [
+        { email: 'ok@example.com', role: UserRole.MEMBER },
+        { email: 'dup@example.com', role: UserRole.MEMBER },
+      ];
 
       mockUserService.getByEmail
         .mockResolvedValueOnce(null)

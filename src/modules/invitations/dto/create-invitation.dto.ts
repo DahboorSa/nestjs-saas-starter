@@ -1,5 +1,4 @@
-import { IsArray, IsEmail, IsEnum, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsEmail, IsEnum } from 'class-validator';
 import { UserRole } from '../../../enums';
 
 export class InvitationItemDto {
@@ -8,11 +7,4 @@ export class InvitationItemDto {
 
   @IsEnum(UserRole)
   role: UserRole;
-}
-
-export class CreateInvitationsDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => InvitationItemDto)
-  invitations: InvitationItemDto[];
 }
