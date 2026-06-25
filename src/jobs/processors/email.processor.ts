@@ -97,7 +97,8 @@ export class EmailProcessor extends WorkerHost {
             Source: this.configService.get<string>('SES_FROM_EMAIL'),
           }),
         );
-      } else {
+      }
+      /*else {
         await this.mailtrapTransport.sendMail({
           from: {
             address: this.configService.get<string>('MAILTRAP_FROM_EMAIL'),
@@ -107,9 +108,10 @@ export class EmailProcessor extends WorkerHost {
           subject,
           text,
         });
-      }
+      }*/
 
       this.logger.log('Email sent successfully', userId);
+      this.logger.log('Email content', { subject, text });
     } catch (error) {
       this.logger.error(error);
       throw error;

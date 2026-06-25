@@ -2,11 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
   //mitigates risks like cross-site scripting (XSS), information leakage, and other common attacks
   app.use(helmet());
+  app.use(cookieParser());
   app.enableCors({
     origin: process.env.ORIGIN?.split(',') ?? '*',
     methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE'],

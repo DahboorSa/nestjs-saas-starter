@@ -7,6 +7,7 @@ import { EmailProcessor } from '../../src/jobs/processors/email.processor';
 import { StripeService } from '../../src/modules/stripe/stripe.service';
 import { PlanEntity } from '../../src/modules/plans/entities/plan.entity';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 // No-op replacement — prevents real Mailtrap/SES calls during e2e tests.
 // Tokens are stored in Redis synchronously before any email job is queued,
@@ -50,6 +51,7 @@ export async function createTestApp(): Promise<INestApplication> {
   const app = moduleFixture.createNestApplication({ rawBody: true });
 
   app.use(helmet());
+  app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

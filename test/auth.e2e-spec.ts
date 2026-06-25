@@ -70,7 +70,7 @@ describe('Auth (e2e)', () => {
   });
 
   describe('POST /auth/login', () => {
-    it('returns 200 with accessToken and refreshToken', async () => {
+    it('returns 200 with accessToken and sets refreshToken cookie', async () => {
       const { email, password } = await registerAndVerify(app);
 
       const res = await request(server)
@@ -79,7 +79,11 @@ describe('Auth (e2e)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('accessToken');
-      expect(res.body).toHaveProperty('refreshToken');
+      expect(res.body).not.toHaveProperty('refreshToken');
+      const cookies: string[] = ([] as string[]).concat(
+        res.headers['set-cookie'] ?? [],
+      );
+      expect(cookies.some((c) => c.startsWith('refreshToken='))).toBe(true);
     });
   });
 
@@ -100,16 +104,20 @@ describe('Auth (e2e)', () => {
   });
 
   describe('POST /auth/refresh-token', () => {
-    it('returns 200 with new token pair', async () => {
+    it('returns 200 with new accessToken and rotates cookie', async () => {
       const { refreshToken } = await registerAndVerify(app);
 
       const res = await request(server)
         .post('/auth/refresh-token')
-        .send({ refreshToken });
+        .set('Cookie', `refreshToken=${refreshToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('accessToken');
-      expect(res.body).toHaveProperty('refreshToken');
+      expect(res.body).not.toHaveProperty('refreshToken');
+      const cookies: string[] = ([] as string[]).concat(
+        res.headers['set-cookie'] ?? [],
+      );
+      expect(cookies.some((c) => c.startsWith('refreshToken='))).toBe(true);
     });
   });
 

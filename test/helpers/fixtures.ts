@@ -17,6 +17,15 @@ export function uniqueEmail(prefix = 'user'): string {
   return `${prefix}+${Date.now()}+${Math.random().toString(36).slice(2)}@test.com`;
 }
 
+function extractRefreshToken(setCookieHeaders: string | string[]): string {
+  const headers = Array.isArray(setCookieHeaders)
+    ? setCookieHeaders
+    : [setCookieHeaders];
+  const match = headers.find((c) => c.startsWith('refreshToken='));
+  if (!match) throw new Error('No refreshToken cookie in response');
+  return match.split(';')[0].replace('refreshToken=', '');
+}
+
 async function getTokenFromCache(
   app: INestApplication,
   pattern: string,
@@ -86,7 +95,7 @@ export async function registerAndVerify(
 
   return {
     accessToken: loginRes.body.accessToken,
-    refreshToken: loginRes.body.refreshToken,
+    refreshToken: extractRefreshToken(loginRes.headers['set-cookie']),
     userId,
     orgId: organizationId,
     email,
@@ -107,7 +116,7 @@ export async function loginUser(
   }
   return {
     accessToken: res.body.accessToken,
-    refreshToken: res.body.refreshToken,
+    refreshToken: extractRefreshToken(res.headers['set-cookie']),
   };
 }
 

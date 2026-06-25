@@ -276,7 +276,7 @@ describe('AuthService', () => {
       mockUserService.getById.mockResolvedValue(null);
 
       await expect(
-        service.refresh(auditContext as any, { refreshToken: 'token' }),
+        service.refresh(auditContext as any, 'token'),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -285,7 +285,7 @@ describe('AuthService', () => {
       mockUserService.getById.mockResolvedValue({ isActive: false });
 
       await expect(
-        service.refresh(auditContext as any, { refreshToken: 'token' }),
+        service.refresh(auditContext as any, 'token'),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -295,7 +295,7 @@ describe('AuthService', () => {
       mockCacheService.get.mockResolvedValue(null);
 
       await expect(
-        service.refresh(auditContext as any, { refreshToken: 'token' }),
+        service.refresh(auditContext as any, 'token'),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -305,7 +305,7 @@ describe('AuthService', () => {
       mockCacheService.get.mockResolvedValue('different-token');
 
       await expect(
-        service.refresh(auditContext as any, { refreshToken: 'token' }),
+        service.refresh(auditContext as any, 'token'),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -316,9 +316,7 @@ describe('AuthService', () => {
       mockCacheService.delete.mockResolvedValue(undefined);
       mockCacheService.set.mockResolvedValue(undefined);
 
-      const result = await service.refresh(auditContext as any, {
-        refreshToken: 'token',
-      });
+      const result = await service.refresh(auditContext as any, 'token');
 
       expect(result).toEqual({
         accessToken: 'access-token',
