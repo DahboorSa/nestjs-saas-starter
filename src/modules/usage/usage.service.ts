@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../../cache/cache.service';
 import { OrganizationEntity } from '../organizations/entities/organization.entity';
@@ -10,6 +10,8 @@ import { UtilityService } from '../../common/utils/utility.service';
 
 @Injectable()
 export class UsageService {
+  private readonly logger = new Logger(UsageService.name);
+
   constructor(
     @InjectRepository(OrganizationEntity)
     private readonly organizationRepository: Repository<OrganizationEntity>,
@@ -24,8 +26,10 @@ export class UsageService {
     metric: string,
     period: string,
   ): Promise<number> {
-    // fix race condition
-    return this.cacheService.incr(`usage:${orgId}:${metric}:${period}`);
+    const key = `usage:${orgId}:${metric}:${period}`;
+    const result = await this.cacheService.incr(key);
+    this.logger.debug(`INCR ${key} → ${result}`);
+    return result;
   }
 
   async getUsage(
@@ -33,9 +37,9 @@ export class UsageService {
     metric: string,
     period: string,
   ): Promise<number> {
-    const currentUsage = await this.cacheService.get(
-      `usage:${orgId}:${metric}:${period}`,
-    );
+    const key = `usage:${orgId}:${metric}:${period}`;
+    const currentUsage = await this.cacheService.get(key);
+    this.logger.debug(`GET ${key} → ${currentUsage}`);
     return +currentUsage || 0;
   }
 

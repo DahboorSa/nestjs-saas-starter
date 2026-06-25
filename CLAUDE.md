@@ -76,7 +76,7 @@ yarn test:e2e -- --testPathPattern=auth
 
 ### E2E test suites
 
-`app`, `auth`, `users`, `organizations`, `plans`, `api-keys`, `invitations`, `webhooks`, `usage`, `payments`
+`app`, `auth`, `users`, `organizations`, `plans`, `api-keys`, `invitations`, `webhooks`, `usage`, `payments`, `audit-logs`
 
 ## Bootstrap Configuration (`main.ts`)
 
@@ -200,7 +200,7 @@ These modules are imported in `app.module.ts`:
 
 | Module | Path | Purpose |
 |--------|------|---------|
-| `AuditLogModule` | `src/modules/audit-logs/` | Records user/org actions; no API endpoint yet |
+| `AuditLogModule` | `src/modules/audit-logs/` | Records user/org actions; exposes `GET /audit-logs` (org-scoped, date-filterable, excludes auth actions) |
 | `WebhookDispatcherModule` | `src/modules/webhook-dispatcher/` | Dispatches events to registered webhook endpoints |
 | `WebhookDeliveriesModule` | `src/modules/webhook-deliveries/` | Tracks delivery attempts and status |
 | `UsageRecordsModule` | `src/modules/usage-records/` | DB persistence layer for usage counts |
@@ -411,7 +411,6 @@ yarn start:dev
 
 ### Low
 - **No CSP configured in Helmet** — `helmet()` called with no options in `main.ts`. Configure Content-Security-Policy explicitly.
-- **No audit log query endpoint** — `AuditLogService` records actions but OWNER/ADMIN have no endpoint to query them. Missing for compliance.
 - **Failed login attempts not logged** — No audit trail of auth failures, making brute force detection harder.
 - **Refresh/verification tokens in plaintext Redis** — If Redis is exposed, all active tokens are readable. No encryption at rest.
 

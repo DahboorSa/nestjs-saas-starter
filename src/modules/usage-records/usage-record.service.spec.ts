@@ -51,7 +51,7 @@ describe('UsageRecordService', () => {
           metric: UsageMetric.API_CALLS,
           period: '2026-03',
           value: 10,
-          organization: { id: 'org-1' },
+          organizationId: 'org-1',
         },
         ['organizationId', 'metric', 'period'],
       );

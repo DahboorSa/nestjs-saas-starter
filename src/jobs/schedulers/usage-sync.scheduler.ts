@@ -20,10 +20,17 @@ export class UsageSyncScheduler {
     const keys = await this.cacheService.getByPattern(
       `usage:*:${UsageMetric.API_CALLS}:*`,
     );
+    this.logger.debug(
+      `Found ${keys.length} usage keys: ${JSON.stringify(keys)}`,
+    );
     for (const key of keys) {
       const usage = await this.cacheService.get(key);
       if (!usage) continue;
-      const [, orgId, metric, period] = key.split(':');
+      const parts = key.split(':');
+      const [, orgId, metric, period] = parts;
+      this.logger.debug(
+        `Processing key="${key}" parts=${JSON.stringify(parts)} orgId="${orgId}" metric="${metric}" period="${period}" value="${usage}"`,
+      );
       if (!Object.values(UsageMetric).includes(metric as UsageMetric)) {
         this.logger.warn(
           `Unknown metric "${metric}" in key "${key}", skipping`,
@@ -36,15 +43,21 @@ export class UsageSyncScheduler {
           period,
           value: +usage,
         });
+        this.logger.debug(`Successfully synced key="${key}"`);
       } catch (error) {
         if (
           error instanceof QueryFailedError &&
-          (error as any).code === '23503' // Foreign key violation, likely due to org being deleted -- this should not happen often, but if it does, we should clean up the cache key to prevent repeated errors on subsequent runs
+          (error as any).code === '23503'
         ) {
-          this.logger.warn(`Deleting stale cache key for unknown org: ${key}`);
+          this.logger.warn(
+            `FK violation syncing key="${key}" orgId="${orgId}" — org may not exist in DB. Detail: ${(error as any).detail ?? (error as any).message}`,
+          );
           await this.cacheService.delete(key);
         } else {
-          this.logger.error(`Failed to sync usage for key: ${key}`, error);
+          this.logger.error(
+            `Failed to sync usage for key="${key}" orgId="${orgId}" — code: ${(error as any).code} — ${(error as any).message}`,
+            error,
+          );
         }
       }
     }
