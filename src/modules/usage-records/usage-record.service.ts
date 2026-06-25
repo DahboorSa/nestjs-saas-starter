@@ -16,10 +16,10 @@ export class UsageRecordService {
   ): Promise<void> {
     await this.usageRecordRepository.upsert(
       {
+        organizationId,
         metric: usageRecord.metric,
         period: usageRecord.period,
         value: usageRecord.value,
-        organization: { id: organizationId },
       },
       ['organizationId', 'metric', 'period'],
     );

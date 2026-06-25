@@ -490,7 +490,7 @@ src/
     webhook-deliveries/      # Delivery records
     usage/                   # Usage tracking + GET /usage endpoint
     usage-records/           # Usage persistence
-    audit-logs/              # Audit log service
+    audit-logs/              # Audit log service + GET /audit-logs (org-scoped, date-filterable)
     stripe/                  # Stripe SDK wrapper + webhook handler (POST /stripe/webhook)
     payments/                # Subscription management (POST/GET /payments/subscription)
 ```
@@ -518,6 +518,7 @@ src/
 - [x] Webhook delivery with HMAC-SHA256 signing + retries
 - [x] Webhook delivery records
 - [x] Audit logging on all significant actions
+- [x] `GET /audit-logs` — query org audit log with optional `from`/`to` date filtering; excludes internal auth events
 - [x] Usage tracking (API calls) via interceptor
 - [x] Usage sync scheduler (Redis → PostgreSQL)
 - [x] Usage reset scheduler (monthly)
