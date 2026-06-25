@@ -10,7 +10,6 @@ import {
 import {
   RegisterDto,
   LoginDto,
-  RefreshTokenDto,
   ResetPasswordDto,
   ChangePasswordDto,
   ForgotPasswordDto,
@@ -156,7 +155,12 @@ export class AuthService {
         throw new InternalServerErrorException('Failed to register user');
       });
 
-    this.audit(auditContext, AuditAction.USER_REGISTER, createdUser, createdOrganization);
+    this.audit(
+      auditContext,
+      AuditAction.USER_REGISTER,
+      createdUser,
+      createdOrganization,
+    );
     return { message, organizationId, userId };
   }
 
@@ -210,9 +214,8 @@ export class AuthService {
     };
   }
 
-  async refresh(auditContext: AuditContextDto, body: RefreshTokenDto) {
-    const { refreshToken: _refreshToken } = body;
-    const valid = this.jwtUtilityService.verifyRefreshToken(_refreshToken);
+  async refresh(auditContext: AuditContextDto, refreshToken: string) {
+    const valid = this.jwtUtilityService.verifyRefreshToken(refreshToken);
     const { userId, orgId, email, role } = valid;
     const existingUser = await this.userService.getById(userId, orgId, true);
     if (!existingUser) throw new UnauthorizedException('User not found');
@@ -223,7 +226,7 @@ export class AuthService {
     );
     if (!existingRefreshToken)
       throw new UnauthorizedException('User logged out');
-    if (_refreshToken !== existingRefreshToken)
+    if (refreshToken !== existingRefreshToken)
       throw new UnauthorizedException('Token was already rotated');
 
     await this.cacheService.delete(`auth:refresh:${userId}`);
@@ -234,7 +237,7 @@ export class AuthService {
       role,
       email,
     };
-    const { accessToken, refreshToken } =
+    const { accessToken, refreshToken: newRefreshToken } =
       await this.jwtUtilityService.issueTokenPair(payload);
 
     this.audit(
@@ -246,7 +249,7 @@ export class AuthService {
 
     return {
       accessToken,
-      refreshToken,
+      refreshToken: newRefreshToken,
     };
   }
 

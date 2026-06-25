@@ -85,7 +85,9 @@ Key middleware applied at startup — affects all requests:
 | Setting | Value | Why |
 |---------|-------|-----|
 | `helmet()` | default options | Basic security headers |
+| `cookieParser()` | enabled | Parses `Cookie` header into `req.cookies` — required for refresh token cookie |
 | CORS `origin` | `ORIGIN` env var or `'*'` | `'*'` is intentional for dev only — fix before prod |
+| CORS `credentials` | `true` | Required for browsers to send HTTP-only cookies cross-origin |
 | `rawBody: true` | enabled | Required for Stripe webhook signature verification |
 | `whitelist: true` | ValidationPipe | Strips unknown fields from DTOs |
 | `forbidNonWhitelisted: true` | ValidationPipe | Rejects requests with unknown fields (400) |

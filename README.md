@@ -78,7 +78,7 @@ flowchart TD
 - **Framework**: NestJS (Node.js / TypeScript)
 - **Database**: PostgreSQL via TypeORM
 - **Cache / Queue**: Redis (ioredis) + BullMQ
-- **Auth**: JWT (access + refresh tokens) + API Key (passport-custom)
+- **Auth**: JWT (access token in body, refresh token in HTTP-only cookie) + API Key (passport-custom)
 - **Email**: AWS SES (production) / Mailtrap (dev/QA)
 - **Scheduling**: @nestjs/schedule (cron jobs)
 - **Rate Limiting**: @nestjs/throttler
@@ -263,14 +263,14 @@ npx madge --circular src/main.ts
 | Method | Endpoint                    | Access   | Description                    |
 | ------ | --------------------------- | -------- | ------------------------------ |
 | POST   | `/auth/register`            | Public   | Register new org + owner user  |
-| POST   | `/auth/login`               | Public   | Login, returns token pair      |
+| POST   | `/auth/login`               | Public   | Login — returns `accessToken` in body, sets `refreshToken` HTTP-only cookie |
 | POST   | `/auth/verify-email`        | Public   | Verify email with token        |
 | POST   | `/auth/resend-verification` | Public   | Resend verification email      |
-| POST   | `/auth/refresh-token`       | Public   | Rotate access + refresh tokens |
+| POST   | `/auth/refresh-token`       | Public   | Rotate tokens — reads cookie, returns new `accessToken`, rotates cookie     |
 | POST   | `/auth/forgot-password`     | Public   | Send password reset email      |
-| POST   | `/auth/reset-password`      | Public   | Reset password with token      |
-| POST   | `/auth/change-password`     | JWT only | Change password                |
-| POST   | `/auth/logout`              | JWT only | Logout and blacklist token     |
+| POST   | `/auth/reset-password`      | Public   | Reset password — returns `accessToken`, sets new cookie                     |
+| POST   | `/auth/change-password`     | JWT only | Change password — returns `accessToken`, sets new cookie                    |
+| POST   | `/auth/logout`              | JWT only | Blacklist access token, clear refresh cookie                                |
 
 ### Users — `/users`
 
@@ -373,9 +373,11 @@ Two parallel strategies:
 
 1. Register → email verification token sent
 2. Verify email → account activated
-3. Login → `accessToken` (15m) + `refreshToken` (7d) issued
-4. Refresh → token pair rotated, old refresh token deleted from Redis
-5. Logout → refresh token deleted, access token blacklisted in Redis
+3. Login → `accessToken` (15m) returned in JSON body; `refreshToken` (7d) set as HTTP-only cookie
+4. Refresh → `POST /auth/refresh-token` reads cookie, rotates both tokens, sets new cookie; old token deleted from Redis
+5. Logout → refresh token deleted from Redis, cookie cleared, access token blacklisted in Redis
+
+> **Frontend requirement**: CORS `credentials: true` must be set on the API server and the frontend must send requests with `credentials: 'include'` (fetch) or `withCredentials: true` (axios). Set the `ORIGIN` env var to your frontend's exact origin — `'*'` does not work with credentialed requests.
 
 ### Cache Key Conventions
 
