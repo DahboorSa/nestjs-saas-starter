@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from './helpers/app.setup';
+import { createTestApp, closeTestApp } from './helpers/app.setup';
 import {
   registerAndVerify,
   sendInvitation,
@@ -21,7 +21,7 @@ describe('Organizations (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp(app);
   });
 
   describe('GET /organizations/me', () => {

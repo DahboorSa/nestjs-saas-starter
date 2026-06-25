@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from './helpers/app.setup';
+import { createTestApp, closeTestApp } from './helpers/app.setup';
 import { registerAndVerify, createApiKey } from './helpers/fixtures';
 
 describe('API Keys (e2e)', () => {
@@ -16,7 +16,7 @@ describe('API Keys (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp(app);
   });
 
   describe('POST /api-keys', () => {

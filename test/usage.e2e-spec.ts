@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from './helpers/app.setup';
+import { createTestApp, closeTestApp } from './helpers/app.setup';
 import { registerAndVerify } from './helpers/fixtures';
 
 describe('Usage (e2e)', () => {
@@ -16,7 +16,7 @@ describe('Usage (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp(app);
   });
 
   describe('GET /usage', () => {

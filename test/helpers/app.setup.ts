@@ -30,6 +30,11 @@ const mockStripeService = {
   constructWebhookEvent: () => null,
 };
 
+export async function closeTestApp(app: INestApplication): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  await app.close();
+}
+
 export async function createTestApp(): Promise<INestApplication> {
   const moduleFixture = await Test.createTestingModule({
     imports: [AppModule],

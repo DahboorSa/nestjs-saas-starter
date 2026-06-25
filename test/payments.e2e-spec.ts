@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from './helpers/app.setup';
+import { createTestApp, closeTestApp } from './helpers/app.setup';
 import { registerAndVerify } from './helpers/fixtures';
 
 // POST /payments/subscription requires a real Stripe price ID attached to the plan.
@@ -20,7 +20,7 @@ describe('Payments (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp(app);
   });
 
   describe('GET /payments/subscription', () => {
