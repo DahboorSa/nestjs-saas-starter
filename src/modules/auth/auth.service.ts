@@ -95,9 +95,15 @@ export class AuthService {
 
     const passwordHash = await argon.hash(body.password);
 
-    return await this.dataSource
+    const {
+      message,
+      organizationId,
+      userId,
+      createdUser,
+      createdOrganization,
+    } = await this.dataSource
       .transaction(async (manager) => {
-        const organization = await manager
+        const createdOrganization = await manager
           .getRepository(OrganizationEntity)
           .save({
             name: body.name,
@@ -107,35 +113,39 @@ export class AuthService {
             paymentStatus:
               plan.name === 'Free' ? PaymentStatus.FREE : PaymentStatus.TRIAL,
           });
-        const user = await manager.getRepository(UserEntity).save({
+        const createdUser = await manager.getRepository(UserEntity).save({
           email: body.email?.toLowerCase(),
           userName: body.email?.split('@')[0],
           firstName: body.firstName,
           lastName: body.lastName,
           passwordHash,
           role: UserRole.OWNER,
-          organization,
+          organization: createdOrganization,
         });
         this.logger.log('User registered successfully', {
-          organizationId: organization.id,
-          userId: user.id,
+          organizationId: createdOrganization.id,
+          userId: createdUser.id,
         });
         const token = randomBytes(32).toString('hex');
         await this.cacheService.set(
           `verify:email:${token}`,
-          JSON.stringify({ userId: user.id, orgId: organization.id }),
+          JSON.stringify({
+            userId: createdUser.id,
+            orgId: createdOrganization.id,
+          }),
           this.configService.get<number>('TTL_EXPIRATION'),
         );
         await this.emailQueue.add('welcome.email', {
           token,
           email: body.email,
-          userId: user.id,
+          userId: createdUser.id,
         });
-        this.audit(auditContext, AuditAction.USER_REGISTER, user, organization);
         return {
           message: 'Registration successful. Please verify your email.',
-          organizationId: organization.id,
-          userId: user.id,
+          organizationId: createdOrganization.id,
+          userId: createdUser.id,
+          createdUser,
+          createdOrganization,
         };
       })
       .catch((error) => {
@@ -145,6 +155,9 @@ export class AuthService {
         });
         throw new InternalServerErrorException('Failed to register user');
       });
+
+    this.audit(auditContext, AuditAction.USER_REGISTER, createdUser, createdOrganization);
+    return { message, organizationId, userId };
   }
 
   async verifyEmail(auditContext: AuditContextDto, token: string) {

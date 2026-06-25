@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from './helpers/app.setup';
+import { createTestApp, closeTestApp } from './helpers/app.setup';
 import { registerAndVerify, createWebhook } from './helpers/fixtures';
 import { WebhookEvent } from '../src/enums';
 
@@ -18,7 +18,7 @@ describe('Webhooks (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp(app);
   });
 
   describe('POST /webhooks', () => {

@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from './helpers/app.setup';
+import { createTestApp, closeTestApp } from './helpers/app.setup';
 import { registerAndVerify, createApiKey } from './helpers/fixtures';
 
 // Audit log creation is fire-and-forget (.catch pattern), so we give the
@@ -17,7 +17,7 @@ describe('Audit Logs (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp(app);
   });
 
   // ─── GET /audit-logs ──────────────────────────────────────────────────────────
