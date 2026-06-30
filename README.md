@@ -70,6 +70,7 @@ flowchart TD
 | Webhooks | GET · POST · DELETE | `/webhooks` · `/webhooks/:id` | OWNER · ADMIN |
 | Webhook Deliveries | GET | `/webhooks/:id/deliveries` | OWNER · ADMIN |
 | Usage Stats | GET | `/usage` | JWT |
+| Onboarding Assistant | POST | `/onboarding/ask` | JWT |
 
 ---
 
@@ -86,6 +87,7 @@ flowchart TD
 - **Payments**: Stripe (subscriptions + billing)
 - **Security**: Helmet
 - **Containerization**: Docker + Docker Compose
+- **AI**: Groq (llama-3.1-8b-instant) / Anthropic Claude (claude-haiku-4-5) via pluggable provider
 
 ---
 
@@ -172,6 +174,9 @@ yarn start:dev
 | `SES_FROM_EMAIL`         | Verified sender email in SES (production only)      | `noreply@example.com`   |
 | `URL_PATH`               | Base URL for email links (use frontend URL in prod) | `http://localhost:5173` |
 | `ORIGIN`                 | CORS allowed origins (comma-separated)              | `http://localhost:3000` |
+| `AI_PROVIDER`            | AI backend to use (`groq` or `claude`)              | `groq`                  |
+| `GROQ_API_KEY`           | Groq API key (required when `AI_PROVIDER=groq`)     | `gsk_...`               |
+| `ANTHROPIC_API_KEY`      | Anthropic API key (required when `AI_PROVIDER=claude`) | `sk-ant-...`         |
 
 > **Important**: Always set `DB_SYNC=false` before running migrations. Never use `DB_SYNC=true` in production.
 
@@ -573,7 +578,7 @@ src/
 
 - [ ] **AI Usage Insights** — `GET /usage/insights` — analyzes org API usage patterns and returns actionable recommendations (e.g. approaching limits, peak usage times, upgrade suggestions)
 - [ ] **Audit Log Anomaly Detection** — monitors audit logs for suspicious activity; if failed login attempts from a specific IP exceed a configurable threshold, the IP is automatically blacklisted in Redis
-- [ ] **Smart Onboarding Assistant** — `POST /onboarding/ask` — new orgs can ask natural language questions about the API, answered based on their current plan, usage, and configuration
+- [x] **Smart Onboarding Assistant** — `POST /onboarding/ask` — new orgs can ask natural language questions about the API, answered based on their current plan, usage, and configuration
 
 #### AWS Integration
 

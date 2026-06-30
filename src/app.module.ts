@@ -21,6 +21,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { WebhookModule } from './modules/webhook/webhook.module';
 import { SchedulerModule } from './jobs/schedulers/scheduler.module';
 import { PaymentModule } from './modules/payments/payment.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { PaymentModule } from './modules/payments/payment.module';
     WebhookModule,
     SchedulerModule,
     PaymentModule,
+    OnboardingModule,
   ],
   controllers: [],
   providers: [
