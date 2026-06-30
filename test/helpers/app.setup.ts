@@ -5,6 +5,7 @@ import { AppModule } from '../../src/app.module';
 import { EmailQueueService } from '../../src/jobs/queues/email.queue';
 import { EmailProcessor } from '../../src/jobs/processors/email.processor';
 import { StripeService } from '../../src/modules/stripe/stripe.service';
+import { AI_PROVIDER } from '../../src/modules/onboarding/providers/ai-provider.interface';
 import { PlanEntity } from '../../src/modules/plans/entities/plan.entity';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -13,6 +14,11 @@ import cookieParser from 'cookie-parser';
 // Tokens are stored in Redis synchronously before any email job is queued,
 // so tests can still read them; the email itself is simply never sent.
 const noopEmailQueue = { add: async () => {} };
+
+// Stub AI provider — prevents real Groq/Anthropic API calls during e2e tests.
+const mockAiProvider = {
+  ask: async () => 'This is a mock answer from the onboarding assistant.',
+};
 
 // Stub Stripe — prevents real Stripe API calls during e2e tests.
 // Payment flow tests that need real Stripe are guarded by RUN_STRIPE_E2E=true.
@@ -46,6 +52,8 @@ export async function createTestApp(): Promise<INestApplication> {
     .useValue({ process: async () => {} })
     .overrideProvider(StripeService)
     .useValue(mockStripeService)
+    .overrideProvider(AI_PROVIDER)
+    .useValue(mockAiProvider)
     .compile();
 
   const app = moduleFixture.createNestApplication({ rawBody: true });

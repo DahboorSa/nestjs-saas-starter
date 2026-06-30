@@ -76,7 +76,7 @@ yarn test:e2e -- --testPathPattern=auth
 
 ### E2E test suites
 
-`app`, `auth`, `users`, `organizations`, `plans`, `api-keys`, `invitations`, `webhooks`, `usage`, `payments`, `audit-logs`
+`app`, `auth`, `users`, `organizations`, `plans`, `api-keys`, `invitations`, `webhooks`, `usage`, `payments`, `audit-logs`, `onboarding`
 
 ## Bootstrap Configuration (`main.ts`)
 
@@ -133,6 +133,11 @@ src/
     plans/                   # Plan listing, default plan
     api-keys/                # Create, list, delete API keys
     usage/                   # Usage records
+    onboarding/              # AI assistant (POST /onboarding/ask)
+      dto/ask.dto.ts         # { question: string } — max 2000 chars
+      providers/             # IAiProvider interface + ClaudeProvider + GroqProvider
+      onboarding.service.ts  # Gathers org context, calls AI provider
+      onboarding.module.ts   # Selects provider via AI_PROVIDER env var
 ```
 
 ### Authentication
@@ -195,6 +200,8 @@ Delivered via HMAC-SHA256 signed HTTP POST. Available events:
 | `@nestjs/axios`                    | HTTP client for webhook delivery |
 | `typeorm-extension`                | Seeders                        |
 | `mailtrap` / `nodemailer`          | Email delivery                 |
+| `@anthropic-ai/sdk`                | Anthropic Claude AI provider   |
+| `groq-sdk`                         | Groq AI provider               |
 
 ### Modules
 
@@ -208,6 +215,7 @@ These modules are imported in `app.module.ts`:
 | `UsageRecordsModule` | `src/modules/usage-records/` | DB persistence layer for usage counts |
 | `StripeModule` | `src/modules/stripe/` | Stripe webhook handler + Stripe API client |
 | `PaymentModule` | `src/modules/payments/` | Subscription create/get endpoints |
+| `OnboardingModule` | `src/modules/onboarding/` | AI-powered onboarding assistant (`POST /onboarding/ask`) — pluggable provider (Groq or Claude) selected via `AI_PROVIDER` env var |
 
 ### Schedulers
 

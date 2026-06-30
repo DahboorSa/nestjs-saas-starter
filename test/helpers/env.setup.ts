@@ -37,7 +37,7 @@ process.env.THROTTLER_AUTH_LIMIT = '10000';
 
 // App
 process.env.NODE_ENV = 'test';
-process.env.URL_PATH = 'http://localhost:3000';
+process.env.URL_PATH = 'http://localhost:5173';
 process.env.ORIGIN = 'http://localhost:3000';
 
 // Stripe — StripeService is fully mocked in app.setup.ts, these satisfy
@@ -50,3 +50,8 @@ process.env.MAILTRAP_API_KEY = 'fake';
 process.env.MAILTRAP_TEST_INBOX_ID = '0';
 process.env.MAILTRAP_FROM_EMAIL = 'noreply@test.com';
 process.env.MAILTRAP_FROM_NAME = 'Test';
+
+// AI Provider
+process.env.AI_PROVIDER = 'groq';
+process.env.GROQ_API_KEY = 'gsk_fake_key';
+process.env.ANTHROPIC_API_KEY = 'claude_fake_key';
