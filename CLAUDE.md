@@ -213,7 +213,8 @@ These modules are imported in `app.module.ts`:
 | `WebhookDispatcherModule` | `src/modules/webhook-dispatcher/` | Dispatches events to registered webhook endpoints |
 | `WebhookDeliveriesModule` | `src/modules/webhook-deliveries/` | Tracks delivery attempts and status |
 | `UsageRecordsModule` | `src/modules/usage-records/` | DB persistence layer for usage counts |
-| `StripeModule` | `src/modules/stripe/` | Stripe webhook handler + Stripe API client |
+| `StripeCoreModule` | `src/modules/stripe/` | Just `StripeService`, no other deps — lets `OrganizationModule` use Stripe without a circular import |
+| `StripeModule` | `src/modules/stripe/` | Stripe webhook handler; imports `StripeCoreModule` + `OrganizationModule`, re-exports `StripeCoreModule` for `PaymentModule` |
 | `PaymentModule` | `src/modules/payments/` | Subscription create/get endpoints |
 | `OnboardingModule` | `src/modules/onboarding/` | AI-powered onboarding assistant (`POST /onboarding/ask`) — pluggable provider (Groq or Claude) selected via `AI_PROVIDER` env var |
 
@@ -263,7 +264,6 @@ All three steps must pass for the check to go green.
 ### Medium
 
 - **`main.ts:11`** — CORS defaults to `'*'` when `ORIGIN` env var is not set. Should fail hard if `ORIGIN` is missing in production.
-- **`PlanModule` and `UserModule`** have `controllers: []` — no HTTP endpoints exposed for plans or users.
 - **Magic numbers** — `86400` hardcoded in `usage.service.ts:65`. `apiKey.slice(0, 12)` unexplained in `api-key.service.ts`. Extract to named constants.
 - **Dead enum values** — `UsageMetric` has `WEBHOOK_CALLS`, `DATA_STORAGE`, `ACTIVE_USERS` defined but never tracked. Only `API_CALLS` is used.
 
@@ -286,9 +286,9 @@ All three steps must pass for the check to go green.
   - `POST /stripe/webhook` — receives Stripe events (`customer.subscription.updated`, `invoice.payment_failed`, `subscription.deleted`) and updates org `status` + `plan`
 
 ### Registration & Plans
-- **Plan upgrade/downgrade endpoint** — No endpoint to change plans after registration. Needs `PATCH /organizations/plan` with payment integration.
+- **Plan upgrade/downgrade endpoint** — `PATCH /organizations/plan` (`organization.controller.ts`) is implemented: validates an active subscription, ends any active Stripe trial immediately (`trial_end: 'now'`) and switches the price with proration, then syncs `paymentStatus`/`trialEndsAt` on the org. Still missing: a Stripe idempotency key on the update call (double-click could double-charge) and a `pendingPlan` field for scheduled downgrades (currently upgrades/downgrades both take effect immediately).
 - **Enforce plan limits** — `maxWebhooks`, `maxMembers` are defined in `PlanEntity.limits` but never enforced. Creating a webhook on a free plan (`maxWebhooks: 0`) succeeds silently.
-- **Trial period management** — `OrganizationEntity.trialEndsAt` field exists but no logic checks it. Trial expiration should downgrade or restrict access.
+- **Trial period management** — `trial-expiry.scheduler.ts` suspends/cancels orgs whose free trial (no `stripeSubscriptionId`) has expired. Not yet handled: a warning email before the trial ends.
 
 ### API Keys
 - **API key expiration enforcement** — `ApiKeyEntity.expiresAt` field exists but is never checked during authentication. Expired keys work indefinitely.

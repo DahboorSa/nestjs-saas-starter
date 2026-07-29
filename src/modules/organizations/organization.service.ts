@@ -1,15 +1,32 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OrganizationEntity } from './entities/organization.entity';
 import { Repository } from 'typeorm';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
-import { CreateOrganizationDto, UpdateOrganizationDto } from './dto';
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+  UpdatePlanDto,
+} from './dto';
 import { UtilityService } from '../../common/utils/utility.service';
 import { UserService } from '../users/user.service';
 import { PlanEntity } from '../plans/entities/plan.entity';
+import { PlanService } from '../plans/plan.service';
 import { AuditLogService } from '../audit-logs/audit-log.service';
-import { AuditAction, AuditResourceType, WebhookEvent } from '../../enums';
+import {
+  AuditAction,
+  AuditResourceType,
+  PaymentStatus,
+  WebhookEvent,
+} from '../../enums';
 import { WebhookDispatcherService } from '../webhook-dispatchers/webhook-dispatcher.service';
+import { StripeService } from '../stripe/stripe.service';
 
 @Injectable()
 export class OrganizationService {
@@ -17,8 +34,10 @@ export class OrganizationService {
   constructor(
     @InjectRepository(OrganizationEntity)
     private readonly organizationRepository: Repository<OrganizationEntity>,
+    private readonly stripeService: StripeService,
     private readonly utilityService: UtilityService,
     private readonly userService: UserService,
+    private readonly planService: PlanService,
     private readonly auditLogService: AuditLogService,
     private readonly dispatcher: WebhookDispatcherService,
   ) {}
@@ -119,5 +138,43 @@ export class OrganizationService {
     fields: Partial<OrganizationEntity>,
   ): Promise<void> {
     await this.organizationRepository.update(id, fields);
+  }
+
+  async updatePlan(
+    auditContext: AuditContextDto,
+    user: UserInfoDto,
+    body: UpdatePlanDto,
+  ): Promise<OrganizationEntity> {
+    const organization = await this.getById(user.orgId);
+    if (!organization) throw new NotFoundException('Organization not found');
+
+    const { stripeSubscriptionId, paymentStatus } = organization;
+    const hasActivePayment =
+      !!stripeSubscriptionId &&
+      [PaymentStatus.ACTIVE, PaymentStatus.TRIAL].includes(paymentStatus);
+
+    if (!hasActivePayment) {
+      throw new ForbiddenException(
+        'No active subscription found. Please subscribe before changing your plan.',
+      );
+    }
+
+    const newPlan = await this.planService.getByName(body.plan);
+    if (!newPlan) throw new NotFoundException('Plan not found');
+    if (organization.plan?.id === newPlan.id) {
+      throw new BadRequestException('Plan is already active');
+    }
+
+    await this.stripeService.updateSubscription(
+      stripeSubscriptionId,
+      newPlan.stripePriceId,
+    );
+
+    organization.plan = newPlan;
+    if (paymentStatus === PaymentStatus.TRIAL) {
+      organization.paymentStatus = PaymentStatus.ACTIVE;
+      organization.trialEndsAt = null;
+    }
+    return this.organizationRepository.save(organization);
   }
 }
