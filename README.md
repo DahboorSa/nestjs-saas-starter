@@ -58,19 +58,21 @@ flowchart TD
 | My Profile | GET · PATCH | `/users/me` | JWT |
 | Change Password | POST | `/auth/change-password` | JWT |
 | Change Email | POST · POST | `/users/me/email` · `/users/me/email/confirm` | JWT · Public (token) |
-| My Organization | GET · PUT | `/organizations/me` | JWT · OWNER/ADMIN |
-| Members List | GET | `/organizations/members` | JWT |
-| Change Member Role | PUT | `/organizations/members/:userId/role` | OWNER |
-| Remove Member | DELETE | `/organizations/members/:userId` | OWNER · ADMIN |
-| Invite Members | GET · POST | `/invitations` | JWT · OWNER/ADMIN |
+| My Organization | GET · PUT | `/organizations/me` | Authenticated · JWT OWNER/ADMIN |
+| Switch Plan | PATCH | `/organizations/plan` | JWT · OWNER |
+| Members List | GET | `/organizations/members` | Authenticated |
+| Change Member Role | PUT | `/organizations/members/:userId/role` | JWT · OWNER |
+| Remove Member | DELETE | `/organizations/members/:userId` | JWT · OWNER/ADMIN |
+| Invite Members | GET · POST | `/invitations` | Authenticated · JWT OWNER/ADMIN |
 | Accept Invite | POST | `/invitations/accept` | Public (token) |
 | Plans Listing | GET | `/plans` | Public |
-| Subscription | GET · POST | `/payments/subscription` | OWNER |
-| API Keys | GET · POST · DELETE | `/api-keys` · `/api-keys/:id` | OWNER · ADMIN |
-| Webhooks | GET · POST · DELETE | `/webhooks` · `/webhooks/:id` | OWNER · ADMIN |
-| Webhook Deliveries | GET | `/webhooks/:id/deliveries` | OWNER · ADMIN |
-| Usage Stats | GET | `/usage` | JWT |
-| Onboarding Assistant | POST | `/onboarding/ask` | JWT |
+| Subscription | GET · POST | `/payments/subscription` | JWT · OWNER |
+| API Keys | GET · POST · DELETE | `/api-keys` · `/api-keys/:id` | OWNER/ADMIN (JWT required for POST/DELETE) |
+| Webhooks | GET · POST · DELETE | `/webhooks` · `/webhooks/:id` | JWT · OWNER/ADMIN |
+| Webhook Deliveries | GET | `/webhooks/:id/deliveries` | JWT · OWNER/ADMIN |
+| Usage Stats | GET | `/usage` | Authenticated |
+| Audit Logs | GET | `/audit-logs` | Authenticated |
+| Onboarding Assistant | POST | `/onboarding/ask` | Authenticated |
 
 ---
 
