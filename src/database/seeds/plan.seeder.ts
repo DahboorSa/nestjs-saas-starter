@@ -18,7 +18,7 @@ export default class PlanSeeder implements Seeder {
       {
         name: 'Free',
         price: 0,
-        stripePriceId: null,
+        stripePriceId: 'price_1TyZnKEGIGbArv804vBWS5lJ', // replace with your actual Stripe price ID
         isDefault: true,
         limits: {
           apiCallsPerMonth: 100,

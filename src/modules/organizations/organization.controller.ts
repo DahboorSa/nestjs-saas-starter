@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Put,
+} from '@nestjs/common';
 import { OrganizationService } from './organization.service';
 import {
   AuditContext,
@@ -7,7 +15,7 @@ import {
   Roles,
 } from '../../common/decorators';
 import { UserInfoDto } from '../../common/dto';
-import { UpdateOrganizationDto } from './dto';
+import { UpdateOrganizationDto, UpdatePlanDto } from './dto';
 import { UserRole } from '../../enums';
 import { UserService } from '../users/user.service';
 import { UpdateUserRoleDto } from '../users/dto';
@@ -39,6 +47,17 @@ export class OrganizationController {
     @Body() body: UpdateOrganizationDto,
   ) {
     return this.organizationService.updateName(auditContext, user, body);
+  }
+
+  @Patch('plan')
+  @JwtOnly()
+  @Roles(UserRole.OWNER)
+  updatePlan(
+    @AuditContext() auditContext: AuditContextDto,
+    @CurrentUser() user: UserInfoDto,
+    @Body() body: UpdatePlanDto,
+  ) {
+    return this.organizationService.updatePlan(auditContext, user, body);
   }
 
   @Put('members/:userId/role')

@@ -52,6 +52,20 @@ export class StripeService {
     return this.stripe.subscriptions.retrieve(subscriptionId);
   }
 
+  async updateSubscription(subscriptionId: string, priceId: string) {
+    const subscription = await this.retrieveSubscription(subscriptionId);
+    const subscriptionItemId = subscription.items.data[0]?.id;
+    if (!subscriptionItemId) {
+      throw new Error('Subscription item not found');
+    }
+    return this.stripe.subscriptions.update(subscriptionId, {
+      items: [{ id: subscriptionItemId, price: priceId }],
+      proration_behavior: 'create_prorations',
+      // Switching plans ends any active trial immediately and starts billing now.
+      ...(subscription.status === 'trialing' && { trial_end: 'now' }),
+    });
+  }
+
   cancelSubscription(subscriptionId: string) {
     return this.stripe.subscriptions.cancel(subscriptionId);
   }

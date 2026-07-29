@@ -293,6 +293,7 @@ npx madge --circular src/main.ts
 | GET    | `/organizations/me`                   | Authenticated         | Get org details    |
 | GET    | `/organizations/members`              | Authenticated         | List org members   |
 | PUT    | `/organizations/me`                   | JWT only, Owner/Admin | Update org name    |
+| PATCH  | `/organizations/plan`                 | JWT only, Owner       | Switch plan — ends any active trial and starts billing immediately |
 | PUT    | `/organizations/members/:userId/role` | JWT only, Owner       | Update member role |
 | DELETE | `/organizations/members/:userId`      | JWT only, Owner/Admin | Remove member      |
 
@@ -551,8 +552,9 @@ src/
 
 #### Plans & Upgrades
 
-- [ ] `PATCH /organizations/plan` — upgrade/downgrade endpoint (must include Stripe idempotency key to prevent double charges on double-click)
-- [ ] `pendingPlan` field on org for scheduled downgrades
+- [x] `PATCH /organizations/plan` — switch plan; ends any active trial immediately (`trial_end: 'now'`) and switches billing to the new price with proration
+- [ ] Stripe idempotency key on the plan-switch subscription update (prevent double charges on double-click)
+- [ ] `pendingPlan` field on org for scheduled downgrades (currently takes effect immediately)
 - [ ] Enforce plan limits (`maxWebhooks`, `maxMembers`)
 
 #### API Keys
