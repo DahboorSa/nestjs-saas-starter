@@ -2,29 +2,24 @@ import { Injectable } from '@nestjs/common';
 import { StripeService } from '../stripe/stripe.service';
 import { AuditContextDto } from '../../common/dto/audit-context.dto';
 import { OrganizationService } from '../organizations/organization.service';
-import { CreateSubscriptionDto } from './dto';
 import { PaymentStatus } from '../../enums';
 
 @Injectable()
-export class PaymentService {
+export class BillingService {
   constructor(
     private readonly organizationService: OrganizationService,
     private readonly stripeService: StripeService,
   ) {}
 
-  async createSubscription(
-    auditContext: AuditContextDto,
-    body: CreateSubscriptionDto,
-  ) {
-    const { organizationId, organizationEmail } = auditContext;
-    const { paymentMethodId } = body;
+  async createSubscription(body: { organizationId: string; email: string }) {
+    const { organizationId, email } = body;
     const organizationDetails =
       await this.organizationService.getById(organizationId);
     let customerId = organizationDetails.stripeCustomerId;
     if (!customerId) {
       const customer = await this.stripeService.createCustomer(
         organizationDetails.name,
-        organizationEmail,
+        email,
         organizationId,
       );
       customerId = customer.id;
@@ -32,14 +27,14 @@ export class PaymentService {
         stripeCustomerId: customerId,
       });
     }
-    await this.stripeService.attachPaymentMethod(paymentMethodId, customerId);
+
     const { stripePriceId } = organizationDetails.plan;
     const { trialEndsAt } = organizationDetails;
     const isInTrial = trialEndsAt && trialEndsAt > new Date();
     const subscription = await this.stripeService.createSubscription(
       customerId,
       stripePriceId,
-      paymentMethodId,
+      undefined,
       isInTrial ? trialEndsAt : undefined,
     );
     await this.organizationService.updateFields(organizationId, {
@@ -73,5 +68,30 @@ export class PaymentService {
         cancelAtPeriodEnd: sub.cancel_at_period_end,
       },
     };
+  }
+
+  async getPaymentMethods(auditContext: AuditContextDto) {
+    const { organizationId } = auditContext;
+    const organizationDetails =
+      await this.organizationService.getById(organizationId);
+    const { stripeCustomerId } = organizationDetails;
+    if (!stripeCustomerId) {
+      return null;
+    }
+    const paymentMethods =
+      await this.stripeService.listPaymentMethods(stripeCustomerId);
+    return paymentMethods;
+  }
+
+  async getInvoices(auditContext: AuditContextDto) {
+    const { organizationId } = auditContext;
+    const organizationDetails =
+      await this.organizationService.getById(organizationId);
+    const { stripeCustomerId } = organizationDetails;
+    if (!stripeCustomerId) {
+      return [];
+    }
+    const invoices = await this.stripeService.listOfInvoices(stripeCustomerId);
+    return invoices;
   }
 }

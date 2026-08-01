@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PaymentService } from './payment.service';
+import { BillingService } from './billing.service';
 import { StripeService } from '../stripe/stripe.service';
 import { OrganizationService } from '../organizations/organization.service';
 import { PaymentStatus } from '../../enums';
@@ -15,9 +15,10 @@ const mockOrg = {
 
 const mockStripeService = {
   createCustomer: jest.fn(),
-  attachPaymentMethod: jest.fn(),
   createSubscription: jest.fn(),
   retrieveSubscription: jest.fn(),
+  listPaymentMethods: jest.fn(),
+  listOfInvoices: jest.fn(),
 };
 
 const mockOrganizationService = {
@@ -33,21 +34,21 @@ const auditContext = {
   userAgent: 'jest',
 } as any;
 
-describe('PaymentService', () => {
-  let service: PaymentService;
+describe('BillingService', () => {
+  let service: BillingService;
 
   beforeEach(async () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        PaymentService,
+        BillingService,
         { provide: StripeService, useValue: mockStripeService },
         { provide: OrganizationService, useValue: mockOrganizationService },
       ],
     }).compile();
 
-    service = module.get<PaymentService>(PaymentService);
+    service = module.get<BillingService>(BillingService);
   });
 
   it('should be defined', () => {
@@ -60,15 +61,15 @@ describe('PaymentService', () => {
     it('should create customer if org has no stripeCustomerId', async () => {
       mockOrganizationService.getById.mockResolvedValue({ ...mockOrg });
       mockStripeService.createCustomer.mockResolvedValue({ id: 'cus_new' });
-      mockStripeService.attachPaymentMethod.mockResolvedValue({});
       mockStripeService.createSubscription.mockResolvedValue({
         id: 'sub_123',
         status: 'active',
       });
 
-      const result = await service.createSubscription(auditContext, {
-        paymentMethodId: 'pm_123',
-      } as any);
+      const result = await service.createSubscription({
+        organizationId: 'org-1',
+        email: 'owner@test.com',
+      });
 
       expect(mockStripeService.createCustomer).toHaveBeenCalledWith(
         'Test Org',
@@ -79,9 +80,11 @@ describe('PaymentService', () => {
         'org-1',
         { stripeCustomerId: 'cus_new' },
       );
-      expect(mockStripeService.attachPaymentMethod).toHaveBeenCalledWith(
-        'pm_123',
+      expect(mockStripeService.createSubscription).toHaveBeenCalledWith(
         'cus_new',
+        'price_123',
+        undefined,
+        undefined,
       );
       expect(result).toEqual({
         message: 'Subscription created successfully',
@@ -95,43 +98,77 @@ describe('PaymentService', () => {
         ...mockOrg,
         stripeCustomerId: 'cus_existing',
       });
-      mockStripeService.attachPaymentMethod.mockResolvedValue({});
       mockStripeService.createSubscription.mockResolvedValue({
         id: 'sub_123',
         status: 'active',
       });
 
-      await service.createSubscription(auditContext, {
-        paymentMethodId: 'pm_123',
-      } as any);
+      await service.createSubscription({
+        organizationId: 'org-1',
+        email: 'owner@test.com',
+      });
 
       expect(mockStripeService.createCustomer).not.toHaveBeenCalled();
-      expect(mockStripeService.attachPaymentMethod).toHaveBeenCalledWith(
-        'pm_123',
+      expect(mockStripeService.createSubscription).toHaveBeenCalledWith(
         'cus_existing',
+        'price_123',
+        undefined,
+        undefined,
       );
     });
 
-    it('should save subscriptionId and set paymentStatus to ACTIVE', async () => {
+    it('should save subscriptionId and set paymentStatus to ACTIVE when not in trial', async () => {
       mockOrganizationService.getById.mockResolvedValue({
         ...mockOrg,
         stripeCustomerId: 'cus_existing',
       });
-      mockStripeService.attachPaymentMethod.mockResolvedValue({});
       mockStripeService.createSubscription.mockResolvedValue({
         id: 'sub_123',
         status: 'active',
       });
 
-      await service.createSubscription(auditContext, {
-        paymentMethodId: 'pm_123',
-      } as any);
+      await service.createSubscription({
+        organizationId: 'org-1',
+        email: 'owner@test.com',
+      });
 
       expect(mockOrganizationService.updateFields).toHaveBeenCalledWith(
         'org-1',
         {
           stripeSubscriptionId: 'sub_123',
           paymentStatus: PaymentStatus.ACTIVE,
+        },
+      );
+    });
+
+    it('should pass trialEndsAt and set paymentStatus to TRIAL when org is in trial', async () => {
+      const trialEndsAt = new Date(Date.now() + 86400 * 1000);
+      mockOrganizationService.getById.mockResolvedValue({
+        ...mockOrg,
+        stripeCustomerId: 'cus_existing',
+        trialEndsAt,
+      });
+      mockStripeService.createSubscription.mockResolvedValue({
+        id: 'sub_123',
+        status: 'trialing',
+      });
+
+      await service.createSubscription({
+        organizationId: 'org-1',
+        email: 'owner@test.com',
+      });
+
+      expect(mockStripeService.createSubscription).toHaveBeenCalledWith(
+        'cus_existing',
+        'price_123',
+        undefined,
+        trialEndsAt,
+      );
+      expect(mockOrganizationService.updateFields).toHaveBeenCalledWith(
+        'org-1',
+        {
+          stripeSubscriptionId: 'sub_123',
+          paymentStatus: PaymentStatus.TRIAL,
         },
       );
     });
@@ -177,6 +214,62 @@ describe('PaymentService', () => {
           cancelAtPeriodEnd: false,
         },
       });
+    });
+  });
+
+  // ─── getPaymentMethods ──────────────────────────────────────────────────────
+
+  describe('getPaymentMethods', () => {
+    it('should return null if org has no stripeCustomerId', async () => {
+      mockOrganizationService.getById.mockResolvedValue({ ...mockOrg });
+
+      const result = await service.getPaymentMethods(auditContext);
+
+      expect(result).toBeNull();
+      expect(mockStripeService.listPaymentMethods).not.toHaveBeenCalled();
+    });
+
+    it('should return payment methods from stripe', async () => {
+      mockOrganizationService.getById.mockResolvedValue({
+        ...mockOrg,
+        stripeCustomerId: 'cus_123',
+      });
+      const expected = { data: [{ id: 'pm_123' }] };
+      mockStripeService.listPaymentMethods.mockResolvedValue(expected);
+
+      const result = await service.getPaymentMethods(auditContext);
+
+      expect(mockStripeService.listPaymentMethods).toHaveBeenCalledWith(
+        'cus_123',
+      );
+      expect(result).toEqual(expected);
+    });
+  });
+
+  // ─── getInvoices ────────────────────────────────────────────────────────────
+
+  describe('getInvoices', () => {
+    it('should return empty array if org has no stripeCustomerId', async () => {
+      mockOrganizationService.getById.mockResolvedValue({ ...mockOrg });
+
+      const result = await service.getInvoices(auditContext);
+
+      expect(result).toEqual([]);
+      expect(mockStripeService.listOfInvoices).not.toHaveBeenCalled();
+    });
+
+    it('should return invoices from stripe', async () => {
+      mockOrganizationService.getById.mockResolvedValue({
+        ...mockOrg,
+        stripeCustomerId: 'cus_123',
+      });
+      const expected = { data: [{ id: 'in_123' }] };
+      mockStripeService.listOfInvoices.mockResolvedValue(expected);
+
+      const result = await service.getInvoices(auditContext);
+
+      expect(mockStripeService.listOfInvoices).toHaveBeenCalledWith('cus_123');
+      expect(result).toEqual(expected);
     });
   });
 });

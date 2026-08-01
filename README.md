@@ -17,14 +17,18 @@ flowchart TD
     C --> D[POST /auth/login]
     D --> E([Authenticated User])
 
+    B --> B1[["subscription.create job\n(queued after commit)"]]
+    B1 --> J[Stripe creates customer + subscription]
+    J --> K["POST /stripe/webhook\n(internal)"]
+    K --> L[Org plan/status synced]
+
     E --> F[GET /users/me]
     E --> G[GET /organizations/me]
     E --> H[GET /plans]
 
-    H --> I["POST /payments/subscription\n(OWNER only)"]
-    I --> J[Stripe processes payment]
-    J --> K["POST /stripe/webhook\n(internal)"]
-    K --> L[Org plan updated]
+    H --> I["PATCH /organizations/plan\n(OWNER only)"]
+    I --> J
+    E --> I2["GET /subscription · /payment-methods · /invoices\n(OWNER only)"]
 
     E --> M["POST /invitations\n(OWNER · ADMIN)"]
     M --> N([Invitee receives email])
@@ -66,7 +70,9 @@ flowchart TD
 | Invite Members | GET · POST | `/invitations` | Authenticated · JWT OWNER/ADMIN |
 | Accept Invite | POST | `/invitations/accept` | Public (token) |
 | Plans Listing | GET | `/plans` | Public |
-| Subscription | GET · POST | `/payments/subscription` | JWT · OWNER |
+| Subscription Status | GET | `/subscription` | JWT · OWNER |
+| Payment Methods | GET | `/payment-methods` | JWT · OWNER |
+| Invoices | GET | `/invoices` | JWT · OWNER |
 | API Keys | GET · POST · DELETE | `/api-keys` · `/api-keys/:id` | OWNER/ADMIN (JWT required for POST/DELETE) |
 | Webhooks | GET · POST · DELETE | `/webhooks` · `/webhooks/:id` | JWT · OWNER/ADMIN |
 | Webhook Deliveries | GET | `/webhooks/:id/deliveries` | JWT · OWNER/ADMIN |
@@ -336,12 +342,13 @@ npx madge --circular src/main.ts
 | ------ | -------- | ------------- | --------------------------------------------- |
 | GET    | `/usage` | Authenticated | Get current API call usage, limit, and period |
 
-### Payments — `/payments`
+### Billing — `/subscription`, `/payment-methods`, `/invoices`
 
-| Method | Endpoint                 | Access          | Description                     |
-| ------ | ------------------------ | --------------- | ------------------------------- |
-| POST   | `/payments/subscription` | JWT only, Owner | Create Stripe subscription      |
-| GET    | `/payments/subscription` | JWT only, Owner | Get current subscription status |
+| Method | Endpoint           | Access          | Description                           |
+| ------ | ------------------ | --------------- | -------------------------------------- |
+| GET    | `/subscription`    | JWT only, Owner | Get current subscription status        |
+| GET    | `/payment-methods` | JWT only, Owner | List the org's Stripe payment methods  |
+| GET    | `/invoices`        | JWT only, Owner | List the org's Stripe invoices         |
 
 ### Stripe — `/stripe`
 
@@ -454,6 +461,10 @@ Delivers webhooks to registered endpoints with:
 - 3 retry attempts with exponential backoff
 - Delivery records saved per attempt
 
+### Subscription Queue
+
+Fires `subscription.create` once `AuthService.register()` commits the org/user transaction. `SubscriptionProcessor` calls `BillingService.createSubscription()`, which creates the Stripe customer + subscription (trial-aware — defers charge if the org's plan includes a free trial). No payment method is attached at this stage.
+
 ### Schedulers
 
 | Cron                     | Job                                                                                      |
@@ -479,9 +490,10 @@ src/
     seeds/                   # Plan seeders
   cache/                     # Redis wrapper
   jobs/
-    queues/                  # Email + webhook queue producers
+    queues/                  # Email, webhook, and subscription queue producers
     processors/              # BullMQ workers
     schedulers/              # Cron jobs
+    subscription-job.module.ts  # BullMQ setup for the subscription queue
   common/
     decorators/              # All shared decorators (@Public, @JwtOnly, @Roles, @CurrentUser, @AuditContext, @SkipUsageTracking)
     dto/                     # Shared DTOs
@@ -502,7 +514,7 @@ src/
     usage-records/           # Usage persistence
     audit-logs/              # Audit log service + GET /audit-logs (org-scoped, date-filterable)
     stripe/                  # Stripe SDK wrapper + webhook handler (POST /stripe/webhook)
-    payments/                # Subscription management (POST/GET /payments/subscription)
+    billing/                 # Subscription/payment-method/invoice endpoints (GET /subscription, /payment-methods, /invoices)
 ```
 
 ---
@@ -541,8 +553,8 @@ src/
 #### Payment Integration
 
 - [x] `StripeModule` + `StripeService` setup
-- [x] `POST /payments/subscription` — create Stripe subscription
-- [x] `GET /payments/subscription` — get current subscription status
+- [x] Automatic subscription creation on registration — `subscription.create` job fired after the register transaction commits, processed by `SubscriptionProcessor` via `BillingService.createSubscription()`
+- [x] `BillingModule` — `GET /subscription`, `GET /payment-methods`, `GET /invoices`
 - [x] `paymentStatus` field on org (`FREE`, `TRIAL`, `ACTIVE`, `SUSPENDED`, `CANCELLED`)
 - [x] `stripePriceId` on `PlanEntity`, `stripeCustomerId` + `stripeSubscriptionId` on `OrganizationEntity`
 - [x] `trialDays` on `PlanEntity` — per-plan trial period (Free: 0, Pro: 14, Enterprise: 30)

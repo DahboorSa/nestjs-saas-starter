@@ -20,7 +20,7 @@ import { AuditLogService } from './modules/audit-logs/audit-log.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WebhookModule } from './modules/webhook/webhook.module';
 import { SchedulerModule } from './jobs/schedulers/scheduler.module';
-import { PaymentModule } from './modules/payments/payment.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 
 @Module({
@@ -59,7 +59,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
     }),
     WebhookModule,
     SchedulerModule,
-    PaymentModule,
+    BillingModule,
     OnboardingModule,
   ],
   controllers: [],

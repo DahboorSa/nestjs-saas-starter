@@ -6,6 +6,7 @@ import { PlanService } from '../plans/plan.service';
 import { DataSource } from 'typeorm';
 import { CacheService } from '../../cache/cache.service';
 import { EmailQueueService } from '../../jobs/queues/email.queue';
+import { SubscriptionQueueService } from '../../jobs/queues/subscription.queue';
 import { ConfigService } from '@nestjs/config';
 import { UtilityService } from '../../common/utils/utility.service';
 import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
@@ -34,6 +35,7 @@ const mockPlanService = { getByName: jest.fn() };
 const mockDataSource = { transaction: jest.fn() };
 const mockCacheService = { get: jest.fn(), set: jest.fn(), delete: jest.fn() };
 const mockEmailQueueService = { add: jest.fn() };
+const mockSubscriptionQueueService = { add: jest.fn() };
 const mockConfigService = { get: jest.fn().mockReturnValue(604800) };
 const mockUtilityService = {
   generateSlug: jest.fn(),
@@ -71,6 +73,10 @@ describe('AuthService', () => {
         { provide: DataSource, useValue: mockDataSource },
         { provide: CacheService, useValue: mockCacheService },
         { provide: EmailQueueService, useValue: mockEmailQueueService },
+        {
+          provide: SubscriptionQueueService,
+          useValue: mockSubscriptionQueueService,
+        },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: UtilityService, useValue: mockUtilityService },
         { provide: JwtUtilityService, useValue: mockJwtUtilityService },
@@ -130,6 +136,60 @@ describe('AuthService', () => {
       (argon.hash as jest.Mock).mockResolvedValue('hashed-password');
       mockCacheService.set.mockResolvedValue(undefined);
       mockEmailQueueService.add.mockResolvedValue(undefined);
+      mockSubscriptionQueueService.add.mockResolvedValue(undefined);
+
+      const mockOrg = { id: 'org-1' };
+      const mockUser = { id: 'user-1' };
+
+      mockDataSource.transaction.mockImplementation(async (cb) => {
+        const manager = {
+          getRepository: jest.fn().mockReturnValue({
+            save: jest
+              .fn()
+              .mockResolvedValueOnce(mockOrg)
+              .mockResolvedValueOnce(mockUser),
+          }),
+        };
+        return cb(manager);
+      });
+
+      const result = await service.register(
+        auditContext as any,
+        registerDto as any,
+      );
+
+      expect(result).toEqual({
+        message: 'Registration successful. Please verify your email.',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+      expect(mockEmailQueueService.add).toHaveBeenCalledWith('welcome.email', {
+        token: expect.any(String),
+        email: registerDto.email,
+        userId: 'user-1',
+      });
+      expect(mockSubscriptionQueueService.add).toHaveBeenCalledWith(
+        'subscription.create',
+        {
+          email: registerDto.email,
+          orgId: 'org-1',
+        },
+      );
+    });
+
+    it('should still return success if enqueuing background jobs fails after commit', async () => {
+      mockUserService.getByEmail.mockResolvedValue(null);
+      mockPlanService.getByName.mockResolvedValue({
+        id: 1,
+        name: 'Free',
+        trialDays: 0,
+      });
+      (argon.hash as jest.Mock).mockResolvedValue('hashed-password');
+      mockCacheService.set.mockResolvedValue(undefined);
+      mockEmailQueueService.add.mockRejectedValue(new Error('Redis down'));
+      mockSubscriptionQueueService.add.mockRejectedValue(
+        new Error('Redis down'),
+      );
 
       const mockOrg = { id: 'org-1' };
       const mockUser = { id: 'user-1' };
