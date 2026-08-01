@@ -32,6 +32,8 @@ import { UserEntity } from '../users/entities/user.entity';
 import { CacheService } from '../../cache/cache.service';
 import { randomBytes } from 'crypto';
 import { EmailQueueService } from '../../jobs/queues/email.queue';
+import { SubscriptionQueueService } from '../../jobs/queues/subscription.queue';
+
 import { ConfigService } from '@nestjs/config';
 import { UtilityService } from '../../common/utils/utility.service';
 import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
@@ -46,6 +48,7 @@ export class AuthService {
     private readonly dataSource: DataSource,
     private readonly cacheService: CacheService,
     private readonly emailQueue: EmailQueueService,
+    private readonly subscriptionQueue: SubscriptionQueueService,
     private readonly configService: ConfigService,
     private readonly utilityService: UtilityService,
     private readonly jwtUtilityService: JwtUtilityService,
@@ -100,6 +103,7 @@ export class AuthService {
       userId,
       createdUser,
       createdOrganization,
+      token,
     } = await this.dataSource
       .transaction(async (manager) => {
         const createdOrganization = await manager
@@ -134,17 +138,13 @@ export class AuthService {
           }),
           this.configService.get<number>('TTL_EXPIRATION'),
         );
-        await this.emailQueue.add('welcome.email', {
-          token,
-          email: body.email,
-          userId: createdUser.id,
-        });
         return {
           message: 'Registration successful. Please verify your email.',
           organizationId: createdOrganization.id,
           userId: createdUser.id,
           createdUser,
           createdOrganization,
+          token,
         };
       })
       .catch((error) => {
@@ -153,6 +153,30 @@ export class AuthService {
           organizationName: body.name,
         });
         throw new InternalServerErrorException('Failed to register user');
+      });
+
+    // Enqueued only after the transaction commits — queued jobs are picked up
+    // by workers immediately and must not race the org/user rows being written.
+    await this.emailQueue
+      .add('welcome.email', {
+        token,
+        email: body.email,
+        userId: createdUser.id,
+      })
+      .catch(() => {
+        this.logger.error('Error enqueuing welcome email', {
+          userId: createdUser.id,
+        });
+      });
+    await this.subscriptionQueue
+      .add('subscription.create', {
+        email: body.email,
+        orgId: createdOrganization.id,
+      })
+      .catch(() => {
+        this.logger.error('Error enqueuing subscription creation', {
+          orgId: createdOrganization.id,
+        });
       });
 
     this.audit(

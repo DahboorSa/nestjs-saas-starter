@@ -76,7 +76,7 @@ yarn test:e2e -- --testPathPattern=auth
 
 ### E2E test suites
 
-`app`, `auth`, `users`, `organizations`, `plans`, `api-keys`, `invitations`, `webhooks`, `usage`, `payments`, `audit-logs`, `onboarding`
+`app`, `auth`, `users`, `organizations`, `plans`, `api-keys`, `invitations`, `webhooks`, `usage`, `subscription`, `audit-logs`, `onboarding`
 
 ## Bootstrap Configuration (`main.ts`)
 
@@ -116,6 +116,9 @@ src/
     job.module.ts            # BullMQ setup
     queues/email.queue.ts    # Enqueues welcome/invite emails
     processors/email.processor.ts   # Processes email jobs (Mailtrap/Nodemailer)
+    subscription-job.module.ts      # BullMQ setup for the subscriptionQueue
+    queues/subscription.queue.ts    # Enqueues subscription.create (fired from AuthService.register() after commit)
+    processors/subscription.process.ts   # Processes subscription.create jobs via BillingService.createSubscription()
   common/
     utils/
       utility.service.ts         # generateSlug()
@@ -214,8 +217,8 @@ These modules are imported in `app.module.ts`:
 | `WebhookDeliveriesModule` | `src/modules/webhook-deliveries/` | Tracks delivery attempts and status |
 | `UsageRecordsModule` | `src/modules/usage-records/` | DB persistence layer for usage counts |
 | `StripeCoreModule` | `src/modules/stripe/` | Just `StripeService`, no other deps — lets `OrganizationModule` use Stripe without a circular import |
-| `StripeModule` | `src/modules/stripe/` | Stripe webhook handler; imports `StripeCoreModule` + `OrganizationModule`, re-exports `StripeCoreModule` for `PaymentModule` |
-| `PaymentModule` | `src/modules/payments/` | Subscription create/get endpoints |
+| `StripeModule` | `src/modules/stripe/` | Stripe webhook handler; imports `StripeCoreModule` + `OrganizationModule`, re-exports `StripeCoreModule` for `BillingModule` |
+| `BillingModule` | `src/modules/billing/` | Subscription, payment method, and invoice endpoints, split across `SubscriptionController` (`/subscription`), `PaymentMethodController` (`/payment-methods`), and `InvoiceController` (`/invoices`), all backed by one `BillingService` |
 | `OnboardingModule` | `src/modules/onboarding/` | AI-powered onboarding assistant (`POST /onboarding/ask`) — pluggable provider (Groq or Claude) selected via `AI_PROVIDER` env var |
 
 ### Schedulers
@@ -280,10 +283,12 @@ All three steps must pass for the check to go green.
   - Use **Stripe CLI** (`stripe listen --forward-to localhost:3000/stripe/webhook`) for local webhook testing
   - Use **Stripe Customer Portal** for billing history / self-serve plan changes
   - Alternative for zero external dependency: `stripe-mock` Docker container (`docker run --rm -it -p 12111:12111 stripe/stripe-mock`)
-- **Payment endpoints** — Three endpoints needed:
-  - `POST /payments/subscription` — create Stripe subscription when org selects a paid plan
-  - `GET /payments/subscription` — get current subscription status (plan, status, next billing date, pendingPlan if downgrade scheduled)
+- **Payment endpoints** — implemented in `BillingModule`:
+  - `GET /subscription` — get current subscription status (plan, status, next billing date; `pendingPlan` for scheduled downgrades still missing)
+  - `GET /payment-methods` — list the org's Stripe payment methods
+  - `GET /invoices` — list the org's Stripe invoices
   - `POST /stripe/webhook` — receives Stripe events (`customer.subscription.updated`, `invoice.payment_failed`, `subscription.deleted`) and updates org `status` + `plan`
+  - There is no manual "create subscription" endpoint — `AuthService.register()` enqueues a `subscription.create` job (`SubscriptionQueueService` / `SubscriptionJobModule`) once the registration transaction commits, and `SubscriptionProcessor` calls `BillingService.createSubscription({ organizationId, email })` to create the Stripe customer + subscription automatically (no payment method attached at this stage).
 
 ### Registration & Plans
 - **Plan upgrade/downgrade endpoint** — `PATCH /organizations/plan` (`organization.controller.ts`) is implemented: validates an active subscription, ends any active Stripe trial immediately (`trial_end: 'now'`) and switches the price with proration, then syncs `paymentStatus`/`trialEndsAt` on the org. Still missing: a Stripe idempotency key on the update call (double-click could double-charge) and a `pendingPlan` field for scheduled downgrades (currently upgrades/downgrades both take effect immediately).
@@ -384,7 +389,7 @@ yarn start:dev
 - **Limit check in interceptors** — `MemberInviteTrackerInterceptor` and `WebhookTrackerInterceptor` both have the same `if (limit !== -1 && count >= limit) throw ForbiddenException` pattern. Extract into a base interceptor.
 
 ### Low
-- **`getActiveOrThrow()`** — org not-found + not-active check repeated in 3 places (`api-key.service`, `payment.service`). Add one method to `OrganizationService`.
+- **`getActiveOrThrow()`** — org not-found + not-active check repeated in 3 places (`api-key.service`, `billing.service`). Add one method to `OrganizationService`.
 - **Entity map/format methods** — each service has its own response-shaping logic with no shared pattern.
 
 ## Performance Issues (Pending Fix)
@@ -395,7 +400,7 @@ yarn start:dev
 - **Unbounded query in `user.service.ts` `findAll()`** — `GET /organizations/members` loads ALL members with no limit. Needs pagination (`take`/`skip`).
 
 ### Medium
-- **Missing transaction in `payment.service.ts` `createSubscription()`** — 4 separate DB writes with no transaction. Crash between steps leaves org with `stripeCustomerId` but no subscription.
+- **Missing transaction in `billing.service.ts` `createSubscription()`** — 4 separate DB writes with no transaction. Crash between steps leaves org with `stripeCustomerId` but no subscription.
 - **Missing transaction in `invitation.service.ts` accept flow** — User creation + invitation status update are separate writes. Partial failure leaves orphaned data.
 - **No GIN index on webhook `events` JSONB column** — `webhook-dispatcher` queries `events @> :events::jsonb` on every dispatch — full table scan. Add: `CREATE INDEX idx_webhook_events ON webhook_endpoints USING gin(events)`.
 - **Missing `@Index()` on audit log foreign keys** — `userId` and `apiKeyId` in `audit-log.entity.ts` have no index. Future audit queries = full table scans.

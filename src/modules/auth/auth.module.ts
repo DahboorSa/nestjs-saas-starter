@@ -12,6 +12,7 @@ import { UtilityModule } from '../../common/utils/utility.module';
 import { JwtUtilityModule } from '../../common/utils/jwt-utility.module';
 import { ApiKeyModule } from '../api-keys/api-key.module';
 import { AuditLogModule } from '../audit-logs/audit-log.module';
+import { SubscriptionJobModule } from '../../jobs/subscription-job.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AuditLogModule } from '../audit-logs/audit-log.module';
     UserModule,
     PlanModule,
     JobModule,
+    SubscriptionJobModule,
     UtilityModule,
     JwtUtilityModule,
     ApiKeyModule,

@@ -31,7 +31,7 @@ export class StripeService {
   createSubscription(
     customerId: string,
     priceId: string,
-    paymentMethodId: string,
+    paymentMethodId?: string | undefined,
     trialEnd?: Date,
   ) {
     return this.stripe.subscriptions.create(
@@ -76,5 +76,17 @@ export class StripeService {
       signature,
       this.configService.get<string>('STRIPE_WEBHOOK_SECRET'),
     );
+  }
+  listPaymentMethods(customerId: string) {
+    return this.stripe.paymentMethods.list({
+      customer: customerId,
+      type: 'card',
+    });
+  }
+
+  listOfInvoices(customerId: string) {
+    return this.stripe.invoices.list({
+      customer: customerId,
+    });
   }
 }
