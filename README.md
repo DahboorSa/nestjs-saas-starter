@@ -49,36 +49,36 @@ flowchart TD
 
 ### Endpoint Reference
 
-| Screen / Feature | Method | Endpoint | Auth |
-|-----------------|--------|----------|------|
-| Register | POST | `/auth/register` | Public |
-| Verify Email | POST | `/auth/verify-email` | Public (token) |
-| Login | POST | `/auth/login` | Public |
-| Forgot Password | POST | `/auth/forgot-password` | Public |
-| Reset Password | POST | `/auth/reset-password` | Public (token) |
-| Refresh Token | POST | `/auth/refresh-token` | Public |
-| Resend Verification | POST | `/auth/resend-verification` | Public |
-| Logout | POST | `/auth/logout` | JWT |
-| My Profile | GET · PATCH | `/users/me` | JWT |
-| Change Password | POST | `/auth/change-password` | JWT |
-| Change Email | POST · POST | `/users/me/email` · `/users/me/email/confirm` | JWT · Public (token) |
-| My Organization | GET · PUT | `/organizations/me` | Authenticated · JWT OWNER/ADMIN |
-| Switch Plan | PATCH | `/organizations/plan` | JWT · OWNER |
-| Members List | GET | `/organizations/members` | Authenticated |
-| Change Member Role | PUT | `/organizations/members/:userId/role` | JWT · OWNER |
-| Remove Member | DELETE | `/organizations/members/:userId` | JWT · OWNER/ADMIN |
-| Invite Members | GET · POST | `/invitations` | Authenticated · JWT OWNER/ADMIN |
-| Accept Invite | POST | `/invitations/accept` | Public (token) |
-| Plans Listing | GET | `/plans` | Public |
-| Subscription Status | GET | `/subscription` | JWT · OWNER |
-| Payment Methods | GET | `/payment-methods` | JWT · OWNER |
-| Invoices | GET | `/invoices` | JWT · OWNER |
-| API Keys | GET · POST · DELETE | `/api-keys` · `/api-keys/:id` | OWNER/ADMIN (JWT required for POST/DELETE) |
-| Webhooks | GET · POST · DELETE | `/webhooks` · `/webhooks/:id` | JWT · OWNER/ADMIN |
-| Webhook Deliveries | GET | `/webhooks/:id/deliveries` | JWT · OWNER/ADMIN |
-| Usage Stats | GET | `/usage` | Authenticated |
-| Audit Logs | GET | `/audit-logs` | Authenticated |
-| Onboarding Assistant | POST | `/onboarding/ask` | Authenticated |
+| Screen / Feature     | Method              | Endpoint                                      | Auth                                       |
+| -------------------- | ------------------- | --------------------------------------------- | ------------------------------------------ |
+| Register             | POST                | `/auth/register`                              | Public                                     |
+| Verify Email         | POST                | `/auth/verify-email`                          | Public (token)                             |
+| Login                | POST                | `/auth/login`                                 | Public                                     |
+| Forgot Password      | POST                | `/auth/forgot-password`                       | Public                                     |
+| Reset Password       | POST                | `/auth/reset-password`                        | Public (token)                             |
+| Refresh Token        | POST                | `/auth/refresh-token`                         | Public                                     |
+| Resend Verification  | POST                | `/auth/resend-verification`                   | Public                                     |
+| Logout               | POST                | `/auth/logout`                                | JWT                                        |
+| My Profile           | GET · PATCH         | `/users/me`                                   | JWT                                        |
+| Change Password      | POST                | `/auth/change-password`                       | JWT                                        |
+| Change Email         | POST · POST         | `/users/me/email` · `/users/me/email/confirm` | JWT · Public (token)                       |
+| My Organization      | GET · PUT           | `/organizations/me`                           | Authenticated · JWT OWNER/ADMIN            |
+| Switch Plan          | PATCH               | `/organizations/plan`                         | JWT · OWNER                                |
+| Members List         | GET                 | `/organizations/members`                      | Authenticated                              |
+| Change Member Role   | PUT                 | `/organizations/members/:userId/role`         | JWT · OWNER                                |
+| Remove Member        | DELETE              | `/organizations/members/:userId`              | JWT · OWNER/ADMIN                          |
+| Invite Members       | GET · POST          | `/invitations`                                | Authenticated · JWT OWNER/ADMIN            |
+| Accept Invite        | POST                | `/invitations/accept`                         | Public (token)                             |
+| Plans Listing        | GET                 | `/plans`                                      | Public                                     |
+| Subscription Status  | GET                 | `/subscription`                               | JWT · OWNER                                |
+| Payment Methods      | GET                 | `/payment-methods`                            | JWT · OWNER                                |
+| Invoices             | GET                 | `/invoices`                                   | JWT · OWNER                                |
+| API Keys             | GET · POST · DELETE | `/api-keys` · `/api-keys/:id`                 | OWNER/ADMIN (JWT required for POST/DELETE) |
+| Webhooks             | GET · POST · DELETE | `/webhooks` · `/webhooks/:id`                 | JWT · OWNER/ADMIN                          |
+| Webhook Deliveries   | GET                 | `/webhooks/:id/deliveries`                    | JWT · OWNER/ADMIN                          |
+| Usage Stats          | GET                 | `/usage`                                      | Authenticated                              |
+| Audit Logs           | GET                 | `/audit-logs`                                 | Authenticated                              |
+| Onboarding Assistant | POST                | `/onboarding/ask`                             | Authenticated                              |
 
 ---
 
@@ -147,44 +147,44 @@ yarn start:dev
 
 ## Environment Variables
 
-| Variable                 | Description                                         | Example                 |
-| ------------------------ | --------------------------------------------------- | ----------------------- |
-| `DB_HOST`                | Postgres host                                       | `localhost`             |
-| `DB_PORT`                | Postgres port                                       | `5432`                  |
-| `DB_USER`                | Postgres user                                       | `saas_user`             |
-| `DB_PASSWORD`            | Postgres password                                   | `saas_password`         |
-| `DB_NAME`                | Postgres database                                   | `saas_dev`              |
-| `DB_SYNC`                | Auto-sync entities (never true in prod)             | `false`                 |
-| `DB_LOGGING`             | Enable query logging                                | `false`                 |
-| `REDIS_HOST`             | Redis host                                          | `localhost`             |
-| `REDIS_PORT`             | Redis port                                          | `6379`                  |
-| `JWT_SECRET`             | Access token secret                                 | `your_secret`           |
-| `JWT_EXPIRES_IN`         | Access token TTL                                    | `15m`                   |
-| `JWT_REFRESH_SECRET`     | Refresh token secret                                | `your_refresh_secret`   |
-| `JWT_REFRESH_EXPIRY`     | Refresh token TTL                                   | `7d`                    |
-| `REFRESH_TOKEN_TTL`      | Refresh token Redis TTL (seconds)                   | `604800`                |
-| `API_KEY_PREFIX`         | API key prefix                                      | `sk_live_`              |
-| `API_KEY_EXPIRATION`     | API key cache TTL (seconds)                         | `300`                   |
-| `INVITE_TOKEN_TTL`       | Invitation token TTL (seconds)                      | `172800`                |
-| `TTL_EXPIRATION`         | General token TTL (seconds)                         | `86400`                 |
-| `THROTTLER_TTL`          | Rate limit window (ms)                              | `60000`                 |
-| `THROTTLER_LIMIT`        | Max requests per window                             | `600`                   |
-| `THROTTLER_AUTH_LIMIT`   | Max auth requests per window                        | `100`                   |
-| `STRIPE_SECRET_KEY`      | Stripe secret key                                   | `sk_test_...`           |
-| `STRIPE_WEBHOOK_SECRET`  | Stripe webhook signing secret                       | `whsec_...`             |
-| `MAILTRAP_API_KEY`       | Mailtrap API key (dev/QA only)                      | `your_key`              |
-| `MAILTRAP_TEST_INBOX_ID` | Mailtrap inbox ID (dev/QA only)                     | `123456`                |
-| `MAILTRAP_FROM_EMAIL`    | Sender email for Mailtrap (dev/QA only)             | `noreply@example.com`   |
-| `MAILTRAP_FROM_NAME`     | Sender name for Mailtrap (dev/QA only)              | `SaaS App`              |
-| `AWS_ACCESS_KEY_ID`      | AWS access key (production only)                    | `AKIA...`               |
-| `AWS_SECRET_ACCESS_KEY`  | AWS secret key (production only)                    | `your_secret`           |
-| `AWS_REGION`             | AWS region for SES (production only)                | `us-east-1`             |
-| `SES_FROM_EMAIL`         | Verified sender email in SES (production only)      | `noreply@example.com`   |
-| `URL_PATH`               | Base URL for email links (use frontend URL in prod) | `http://localhost:5173` |
-| `ORIGIN`                 | CORS allowed origins (comma-separated)              | `http://localhost:3000` |
-| `AI_PROVIDER`            | AI backend to use (`groq` or `claude`)              | `groq`                  |
-| `GROQ_API_KEY`           | Groq API key (required when `AI_PROVIDER=groq`)     | `gsk_...`               |
-| `ANTHROPIC_API_KEY`      | Anthropic API key (required when `AI_PROVIDER=claude`) | `sk-ant-...`         |
+| Variable                 | Description                                            | Example                 |
+| ------------------------ | ------------------------------------------------------ | ----------------------- |
+| `DB_HOST`                | Postgres host                                          | `localhost`             |
+| `DB_PORT`                | Postgres port                                          | `5432`                  |
+| `DB_USER`                | Postgres user                                          | `saas_user`             |
+| `DB_PASSWORD`            | Postgres password                                      | `saas_password`         |
+| `DB_NAME`                | Postgres database                                      | `saas_dev`              |
+| `DB_SYNC`                | Auto-sync entities (never true in prod)                | `false`                 |
+| `DB_LOGGING`             | Enable query logging                                   | `false`                 |
+| `REDIS_HOST`             | Redis host                                             | `localhost`             |
+| `REDIS_PORT`             | Redis port                                             | `6379`                  |
+| `JWT_SECRET`             | Access token secret                                    | `your_secret`           |
+| `JWT_EXPIRES_IN`         | Access token TTL                                       | `15m`                   |
+| `JWT_REFRESH_SECRET`     | Refresh token secret                                   | `your_refresh_secret`   |
+| `JWT_REFRESH_EXPIRY`     | Refresh token TTL                                      | `7d`                    |
+| `REFRESH_TOKEN_TTL`      | Refresh token Redis TTL (seconds)                      | `604800`                |
+| `API_KEY_PREFIX`         | API key prefix                                         | `sk_live_`              |
+| `API_KEY_EXPIRATION`     | API key cache TTL (seconds)                            | `300`                   |
+| `INVITE_TOKEN_TTL`       | Invitation token TTL (seconds)                         | `172800`                |
+| `TTL_EXPIRATION`         | General token TTL (seconds)                            | `86400`                 |
+| `THROTTLER_TTL`          | Rate limit window (ms)                                 | `60000`                 |
+| `THROTTLER_LIMIT`        | Max requests per window                                | `600`                   |
+| `THROTTLER_AUTH_LIMIT`   | Max auth requests per window                           | `100`                   |
+| `STRIPE_SECRET_KEY`      | Stripe secret key                                      | `sk_test_...`           |
+| `STRIPE_WEBHOOK_SECRET`  | Stripe webhook signing secret                          | `whsec_...`             |
+| `MAILTRAP_API_KEY`       | Mailtrap API key (dev/QA only)                         | `your_key`              |
+| `MAILTRAP_TEST_INBOX_ID` | Mailtrap inbox ID (dev/QA only)                        | `123456`                |
+| `MAILTRAP_FROM_EMAIL`    | Sender email for Mailtrap (dev/QA only)                | `noreply@example.com`   |
+| `MAILTRAP_FROM_NAME`     | Sender name for Mailtrap (dev/QA only)                 | `SaaS App`              |
+| `AWS_ACCESS_KEY_ID`      | AWS access key (production only)                       | `AKIA...`               |
+| `AWS_SECRET_ACCESS_KEY`  | AWS secret key (production only)                       | `your_secret`           |
+| `AWS_REGION`             | AWS region for SES (production only)                   | `us-east-1`             |
+| `SES_FROM_EMAIL`         | Verified sender email in SES (production only)         | `noreply@example.com`   |
+| `URL_PATH`               | Base URL for email links (use frontend URL in prod)    | `http://localhost:5173` |
+| `ORIGIN`                 | CORS allowed origins (comma-separated)                 | `http://localhost:3000` |
+| `AI_PROVIDER`            | AI backend to use (`groq` or `claude`)                 | `groq`                  |
+| `GROQ_API_KEY`           | Groq API key (required when `AI_PROVIDER=groq`)        | `gsk_...`               |
+| `ANTHROPIC_API_KEY`      | Anthropic API key (required when `AI_PROVIDER=claude`) | `sk-ant-...`            |
 
 > **Important**: Always set `DB_SYNC=false` before running migrations. Never use `DB_SYNC=true` in production.
 
@@ -273,14 +273,14 @@ npx madge --circular src/main.ts
 
 ### Auth — `/auth`
 
-| Method | Endpoint                    | Access   | Description                    |
-| ------ | --------------------------- | -------- | ------------------------------ |
-| POST   | `/auth/register`            | Public   | Register new org + owner user  |
+| Method | Endpoint                    | Access   | Description                                                                 |
+| ------ | --------------------------- | -------- | --------------------------------------------------------------------------- |
+| POST   | `/auth/register`            | Public   | Register new org + owner user                                               |
 | POST   | `/auth/login`               | Public   | Login — returns `accessToken` in body, sets `refreshToken` HTTP-only cookie |
-| POST   | `/auth/verify-email`        | Public   | Verify email with token        |
-| POST   | `/auth/resend-verification` | Public   | Resend verification email      |
+| POST   | `/auth/verify-email`        | Public   | Verify email with token                                                     |
+| POST   | `/auth/resend-verification` | Public   | Resend verification email                                                   |
 | POST   | `/auth/refresh-token`       | Public   | Rotate tokens — reads cookie, returns new `accessToken`, rotates cookie     |
-| POST   | `/auth/forgot-password`     | Public   | Send password reset email      |
+| POST   | `/auth/forgot-password`     | Public   | Send password reset email                                                   |
 | POST   | `/auth/reset-password`      | Public   | Reset password — returns `accessToken`, sets new cookie                     |
 | POST   | `/auth/change-password`     | JWT only | Change password — returns `accessToken`, sets new cookie                    |
 | POST   | `/auth/logout`              | JWT only | Blacklist access token, clear refresh cookie                                |
@@ -296,14 +296,14 @@ npx madge --circular src/main.ts
 
 ### Organizations — `/organizations`
 
-| Method | Endpoint                              | Access                | Description        |
-| ------ | ------------------------------------- | --------------------- | ------------------ |
-| GET    | `/organizations/me`                   | Authenticated         | Get org details    |
-| GET    | `/organizations/members`              | Authenticated         | List org members   |
-| PUT    | `/organizations/me`                   | JWT only, Owner/Admin | Update org name    |
+| Method | Endpoint                              | Access                | Description                                                        |
+| ------ | ------------------------------------- | --------------------- | ------------------------------------------------------------------ |
+| GET    | `/organizations/me`                   | Authenticated         | Get org details                                                    |
+| GET    | `/organizations/members`              | Authenticated         | List org members                                                   |
+| PUT    | `/organizations/me`                   | JWT only, Owner/Admin | Update org name                                                    |
 | PATCH  | `/organizations/plan`                 | JWT only, Owner       | Switch plan — ends any active trial and starts billing immediately |
-| PUT    | `/organizations/members/:userId/role` | JWT only, Owner       | Update member role |
-| DELETE | `/organizations/members/:userId`      | JWT only, Owner/Admin | Remove member      |
+| PUT    | `/organizations/members/:userId/role` | JWT only, Owner       | Update member role                                                 |
+| DELETE | `/organizations/members/:userId`      | JWT only, Owner/Admin | Remove member                                                      |
 
 ### Plans — `/plans`
 
@@ -345,10 +345,10 @@ npx madge --circular src/main.ts
 ### Billing — `/subscription`, `/payment-methods`, `/invoices`
 
 | Method | Endpoint           | Access          | Description                           |
-| ------ | ------------------ | --------------- | -------------------------------------- |
-| GET    | `/subscription`    | JWT only, Owner | Get current subscription status        |
-| GET    | `/payment-methods` | JWT only, Owner | List the org's Stripe payment methods  |
-| GET    | `/invoices`        | JWT only, Owner | List the org's Stripe invoices         |
+| ------ | ------------------ | --------------- | ------------------------------------- |
+| GET    | `/subscription`    | JWT only, Owner | Get current subscription status       |
+| GET    | `/payment-methods` | JWT only, Owner | List the org's Stripe payment methods |
+| GET    | `/invoices`        | JWT only, Owner | List the org's Stripe invoices        |
 
 ### Stripe — `/stripe`
 
@@ -633,4 +633,4 @@ Made with 🌸 by **Sebaa Dahboor**
 
 ## License
 
-MIT
+Noncommercial — see [LICENSE](LICENSE). Free to use, copy, modify, and share for education, learning, personal projects, and research. Commercial use requires prior written permission.
