@@ -33,12 +33,13 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
+# dotenv environment variable files (any .env.* variant — keep the .example template tracked)
 .env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+.env.*
+!.env.example
+
+# local-only notes/credentials, never commit
+notes.txt
 
 # temp directory
 .temp

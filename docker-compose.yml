@@ -9,12 +9,14 @@ services:
       args:
         - APP_NAME=nestjs-saas-starter
     command: yarn run start:dev
+    env_file:
+      - .env
     environment:
-      - POSTGRES_HOST=saas-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=saas_user
-      - POSTGRES_PASSWORD=saas_password
-      - POSTGRES_DB=saas_dev
+      - DB_HOST=saas-db
+      - DB_PORT=5432
+      - DB_USER=saas_user
+      - DB_PASSWORD=saas_password
+      - DB_NAME=saas_dev
       - REDIS_HOST=saas-redis
       - REDIS_PORT=6379
     volumes:

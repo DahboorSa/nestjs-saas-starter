@@ -4,3 +4,6 @@ dist
 .gitignore
 Dockerfile
 yarn-error.log
+.env
+.env.*
+notes.txt
