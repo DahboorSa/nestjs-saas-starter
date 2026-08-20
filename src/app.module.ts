@@ -22,6 +22,7 @@ import { WebhookModule } from './modules/webhook/webhook.module';
 import { SchedulerModule } from './jobs/schedulers/scheduler.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
     SchedulerModule,
     BillingModule,
     OnboardingModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [

@@ -1,5 +1,5 @@
 # Use Node image
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Redis, bundled so the free-tier deploy doesn't need a separate Redis service
 RUN apk add --no-cache redis
