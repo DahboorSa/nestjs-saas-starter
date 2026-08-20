@@ -15,6 +15,7 @@ import databaseConfig, { DatabaseConfig } from '../config/database.config';
         database: config.database,
         synchronize: config.sync,
         logging: config.logging,
+        ssl: config.ssl ? { rejectUnauthorized: false } : false,
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
       }),
     }),

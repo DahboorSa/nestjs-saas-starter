@@ -1,6 +1,9 @@
 # Use Node image
 FROM node:20-alpine
 
+# Redis, bundled so the free-tier deploy doesn't need a separate Redis service
+RUN apk add --no-cache redis
+
 # Create app directory
 WORKDIR /app
 
@@ -19,5 +22,5 @@ RUN yarn build
 # Expose API port
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "dist/main.js"]
+# Start Redis in the background, then the app
+CMD redis-server --daemonize yes && node dist/main.js

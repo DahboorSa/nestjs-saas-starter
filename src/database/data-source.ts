@@ -12,6 +12,7 @@ const options: DataSourceOptions & SeederOptions = {
   username: config.username,
   password: config.password,
   database: config.database,
+  ssl: config.ssl ? { rejectUnauthorized: false } : false,
   entities: ['src/**/*.entity.ts', 'dist/**/*.entity.js'],
   migrations: ['src/database/migrations/*.ts'],
   migrationsTableName: 'migrations',
