@@ -32,24 +32,39 @@ import { Throttle } from '@nestjs/throttler';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
   private setRefreshCookie(res: Response, token: string): void {
     const maxAge = +(process.env.REFRESH_TOKEN_TTL ?? 604800) * 1000;
+    const sameSiteValue = process.env.COOKIE_SAME_SITE;
+    const sameSite =
+      sameSiteValue === 'lax' ||
+      sameSiteValue === 'strict' ||
+      sameSiteValue === 'none'
+        ? sameSiteValue
+        : 'strict';
+
     res.cookie('refreshToken', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
+      secure: process.env.COOKIE_SECURE === 'true',
+      sameSite,
+      path: '/auth',
       maxAge,
     });
   }
 
   private clearRefreshCookie(res: Response): void {
+    const sameSiteValue = process.env.COOKIE_SAME_SITE;
+    const sameSite =
+      sameSiteValue === 'lax' ||
+      sameSiteValue === 'strict' ||
+      sameSiteValue === 'none'
+        ? sameSiteValue
+        : 'strict';
+
     res.clearCookie('refreshToken', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
+      secure: process.env.COOKIE_SECURE === 'true',
+      sameSite,
+      path: '/auth',
     });
   }
 
