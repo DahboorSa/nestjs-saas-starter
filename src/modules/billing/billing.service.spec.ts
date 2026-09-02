@@ -185,8 +185,10 @@ describe('BillingService', () => {
       expect(result).toEqual({
         paymentStatus: PaymentStatus.FREE,
         subscription: null,
+        paymentMethods: [],
       });
       expect(mockStripeService.retrieveSubscription).not.toHaveBeenCalled();
+      expect(mockStripeService.listPaymentMethods).not.toHaveBeenCalled();
     });
 
     it('should return mapped subscription data', async () => {
@@ -205,6 +207,10 @@ describe('BillingService', () => {
 
       const result = await service.getSubscription(auditContext);
 
+      expect(mockStripeService.retrieveSubscription).toHaveBeenCalledWith(
+        'sub_123',
+        ['default_payment_method'],
+      );
       expect(result).toEqual({
         paymentStatus: PaymentStatus.ACTIVE,
         subscription: {
@@ -213,7 +219,71 @@ describe('BillingService', () => {
           currentPeriodEnd: new Date(periodEnd * 1000),
           cancelAtPeriodEnd: false,
         },
+        paymentMethods: [],
       });
+    });
+
+    it('should include shaped payment methods and flag the subscription default', async () => {
+      const periodEnd = Math.floor(Date.now() / 1000) + 86400;
+      mockOrganizationService.getById.mockResolvedValue({
+        ...mockOrg,
+        stripeCustomerId: 'cus_123',
+        stripeSubscriptionId: 'sub_123',
+        paymentStatus: PaymentStatus.ACTIVE,
+      });
+      mockStripeService.listPaymentMethods.mockResolvedValue({
+        data: [
+          {
+            id: 'pm_default',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2030,
+            },
+          },
+          {
+            id: 'pm_other',
+            card: {
+              brand: 'amex',
+              last4: '0005',
+              exp_month: 1,
+              exp_year: 2028,
+            },
+          },
+        ],
+      });
+      mockStripeService.retrieveSubscription.mockResolvedValue({
+        id: 'sub_123',
+        status: 'active',
+        current_period_end: periodEnd,
+        cancel_at_period_end: false,
+        default_payment_method: { id: 'pm_default' },
+      });
+
+      const result = await service.getSubscription(auditContext);
+
+      expect(mockStripeService.listPaymentMethods).toHaveBeenCalledWith(
+        'cus_123',
+      );
+      expect(result.paymentMethods).toEqual([
+        {
+          id: 'pm_default',
+          brand: 'visa',
+          last4: '4242',
+          expMonth: 12,
+          expYear: 2030,
+          isDefault: true,
+        },
+        {
+          id: 'pm_other',
+          brand: 'amex',
+          last4: '0005',
+          expMonth: 1,
+          expYear: 2028,
+          isDefault: false,
+        },
+      ]);
     });
   });
 

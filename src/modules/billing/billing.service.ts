@@ -52,13 +52,29 @@ export class BillingService {
     const { organizationId } = auditContext;
     const organizationDetails =
       await this.organizationService.getById(organizationId);
-    const { stripeSubscriptionId, paymentStatus } = organizationDetails;
+    const { stripeSubscriptionId, stripeCustomerId, paymentStatus } =
+      organizationDetails;
+
+    const paymentMethods = stripeCustomerId
+      ? (
+          await this.stripeService.listPaymentMethods(stripeCustomerId)
+        ).data.map((pm) => this.formatPaymentMethod(pm))
+      : [];
+
     if (!stripeSubscriptionId) {
-      return { paymentStatus, subscription: null };
+      return { paymentStatus, subscription: null, paymentMethods };
     }
-    const subscription =
-      await this.stripeService.retrieveSubscription(stripeSubscriptionId);
-    const sub = subscription as any;
+
+    const sub = (await this.stripeService.retrieveSubscription(
+      stripeSubscriptionId,
+      ['default_payment_method'],
+    )) as any;
+
+    const defaultPaymentMethodId =
+      typeof sub.default_payment_method === 'string'
+        ? sub.default_payment_method
+        : (sub.default_payment_method?.id ?? null);
+
     return {
       paymentStatus,
       subscription: {
@@ -67,6 +83,20 @@ export class BillingService {
         currentPeriodEnd: new Date(sub.current_period_end * 1000),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
       },
+      paymentMethods: paymentMethods.map((pm) => ({
+        ...pm,
+        isDefault: pm.id === defaultPaymentMethodId,
+      })),
+    };
+  }
+
+  private formatPaymentMethod(pm: any) {
+    return {
+      id: pm.id,
+      brand: pm.card?.brand ?? null,
+      last4: pm.card?.last4 ?? null,
+      expMonth: pm.card?.exp_month ?? null,
+      expYear: pm.card?.exp_year ?? null,
     };
   }
 

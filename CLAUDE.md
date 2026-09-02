@@ -284,8 +284,8 @@ All three steps must pass for the check to go green.
   - Use **Stripe Customer Portal** for billing history / self-serve plan changes
   - Alternative for zero external dependency: `stripe-mock` Docker container (`docker run --rm -it -p 12111:12111 stripe/stripe-mock`)
 - **Payment endpoints** — implemented in `BillingModule`:
-  - `GET /subscription` — get current subscription status (plan, status, next billing date; `pendingPlan` for scheduled downgrades still missing)
-  - `GET /payment-methods` — list the org's Stripe payment methods
+  - `GET /subscription` — current subscription status (status, next billing date, `cancelAtPeriodEnd`) **plus `paymentMethods[]`** — shaped cards (`brand`, `last4`, `expMonth`, `expYear`, `isDefault`) so the UI gets subscription + cards in one call. `retrieveSubscription()` is called with `expand: ['default_payment_method']` to flag `isDefault`. `pendingPlan` for scheduled downgrades still missing
+  - `GET /payment-methods` — list the org's Stripe payment methods (raw Stripe list shape; now largely redundant with `/subscription.paymentMethods` — reconcile or drop from UI)
   - `GET /invoices` — list the org's Stripe invoices
   - `POST /stripe/webhook` — receives Stripe events (`customer.subscription.updated`, `invoice.payment_failed`, `subscription.deleted`) and updates org `status` + `plan`
   - There is no manual "create subscription" endpoint — `AuthService.register()` enqueues a `subscription.create` job (`SubscriptionQueueService` / `SubscriptionJobModule`) once the registration transaction commits, and `SubscriptionProcessor` calls `BillingService.createSubscription({ organizationId, email })` to create the Stripe customer + subscription automatically (no payment method attached at this stage).

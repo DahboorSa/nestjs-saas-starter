@@ -26,6 +26,8 @@ describe('Subscription (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('paymentStatus');
+      expect(Array.isArray(res.body.paymentMethods)).toBe(true);
     });
   });
 });
