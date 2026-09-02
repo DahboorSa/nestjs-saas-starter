@@ -45,6 +45,16 @@ describe('SubscriptionController', () => {
           currentPeriodEnd: new Date(),
           cancelAtPeriodEnd: false,
         },
+        paymentMethods: [
+          {
+            id: 'pm_123',
+            brand: 'visa',
+            last4: '4242',
+            expMonth: 12,
+            expYear: 2030,
+            isDefault: true,
+          },
+        ],
       };
       mockBillingService.getSubscription.mockResolvedValue(expected);
 
@@ -60,6 +70,7 @@ describe('SubscriptionController', () => {
       const expected = {
         paymentStatus: PaymentStatus.FREE,
         subscription: null,
+        paymentMethods: [],
       };
       mockBillingService.getSubscription.mockResolvedValue(expected);
 

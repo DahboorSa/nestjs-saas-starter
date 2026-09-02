@@ -48,8 +48,11 @@ export class StripeService {
     );
   }
 
-  retrieveSubscription(subscriptionId: string) {
-    return this.stripe.subscriptions.retrieve(subscriptionId);
+  retrieveSubscription(subscriptionId: string, expand: string[] = []) {
+    return this.stripe.subscriptions.retrieve(
+      subscriptionId,
+      expand.length ? { expand } : {},
+    );
   }
 
   async updateSubscription(subscriptionId: string, priceId: string) {

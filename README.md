@@ -346,8 +346,8 @@ npx madge --circular src/main.ts
 
 | Method | Endpoint           | Access          | Description                           |
 | ------ | ------------------ | --------------- | ------------------------------------- |
-| GET    | `/subscription`    | JWT only, Owner | Get current subscription status       |
-| GET    | `/payment-methods` | JWT only, Owner | List the org's Stripe payment methods |
+| GET    | `/subscription`    | JWT only, Owner | Subscription status + `paymentMethods[]` (shaped cards; `isDefault` flags the subscription's card) |
+| GET    | `/payment-methods` | JWT only, Owner | List the org's Stripe payment methods (raw Stripe shape) |
 | GET    | `/invoices`        | JWT only, Owner | List the org's Stripe invoices        |
 
 ### Stripe — `/stripe`
