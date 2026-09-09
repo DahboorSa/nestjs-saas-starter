@@ -184,6 +184,7 @@ yarn start:dev
 | `ORIGIN`                 | CORS allowed origins (comma-separated)                 | `http://localhost:3000` |
 | `AI_PROVIDER`            | AI backend to use (`groq` or `claude`)                 | `groq`                  |
 | `GROQ_API_KEY`           | Groq API key (required when `AI_PROVIDER=groq`)        | `gsk_...`               |
+| `GROQ_MODEL`             | Groq model id (optional)                               | `openai/gpt-oss-20b`    |
 | `ANTHROPIC_API_KEY`      | Anthropic API key (required when `AI_PROVIDER=claude`) | `sk-ant-...`            |
 
 > **Important**: Always set `DB_SYNC=false` before running migrations. Never use `DB_SYNC=true` in production.

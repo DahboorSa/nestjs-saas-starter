@@ -138,7 +138,7 @@ src/
     usage/                   # Usage records
     onboarding/              # AI assistant (POST /onboarding/ask)
       dto/ask.dto.ts         # { question: string } — max 2000 chars
-      providers/             # IAiProvider interface + ClaudeProvider + GroqProvider
+      providers/             # IAiProvider interface + ClaudeProvider + GroqProvider (Groq model from GROQ_MODEL env, default openai/gpt-oss-20b)
       onboarding.service.ts  # Gathers org context, calls AI provider
       onboarding.module.ts   # Selects provider via AI_PROVIDER env var
 ```
@@ -219,7 +219,7 @@ These modules are imported in `app.module.ts`:
 | `StripeCoreModule` | `src/modules/stripe/` | Just `StripeService`, no other deps — lets `OrganizationModule` use Stripe without a circular import |
 | `StripeModule` | `src/modules/stripe/` | Stripe webhook handler; imports `StripeCoreModule` + `OrganizationModule`, re-exports `StripeCoreModule` for `BillingModule` |
 | `BillingModule` | `src/modules/billing/` | Subscription, payment method, and invoice endpoints, split across `SubscriptionController` (`/subscription`), `PaymentMethodController` (`/payment-methods`), and `InvoiceController` (`/invoices`), all backed by one `BillingService` |
-| `OnboardingModule` | `src/modules/onboarding/` | AI-powered onboarding assistant (`POST /onboarding/ask`) — pluggable provider (Groq or Claude) selected via `AI_PROVIDER` env var |
+| `OnboardingModule` | `src/modules/onboarding/` | AI-powered onboarding assistant (`POST /onboarding/ask`) — pluggable provider (Groq or Claude) selected via `AI_PROVIDER` env var; Groq model set via `GROQ_MODEL` (default `openai/gpt-oss-20b`) |
 
 ### Schedulers
 
