@@ -13,7 +13,10 @@ import { AuditContextDto } from '../../common/dto';
 import { UserRole } from '../../enums';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import { WebhookTrackerInterceptor } from './interceptors/webhook-tracker.interceptor';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Webhooks')
+@ApiBearerAuth('access-token')
 @Controller('webhooks')
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}

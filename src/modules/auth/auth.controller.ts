@@ -27,7 +27,9 @@ import {
   Public,
 } from '../../common/decorators';
 import { Throttle } from '@nestjs/throttler';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Throttle({ auth: {} })
 @Controller('auth')
 export class AuthController {
@@ -123,6 +125,7 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @ApiBearerAuth('access-token')
   @JwtOnly()
   @HttpCode(HttpStatus.OK)
   async changePassword(
@@ -167,6 +170,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ApiBearerAuth('access-token')
   @JwtOnly()
   @HttpCode(HttpStatus.OK)
   async logout(

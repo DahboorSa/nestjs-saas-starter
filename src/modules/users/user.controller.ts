@@ -17,18 +17,22 @@ import {
 } from '../../common/decorators';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import { UpdateUserDto, UpdateUserEmailDto } from './dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Users')
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('me')
+  @ApiBearerAuth('access-token')
   @JwtOnly()
   async findAll(@CurrentUser() user: UserInfoDto) {
     return await this.userService.getDetails(user);
   }
 
   @Patch('me')
+  @ApiBearerAuth('access-token')
   @JwtOnly()
   async update(
     @AuditContext() auditContext: AuditContextDto,
@@ -39,6 +43,7 @@ export class UserController {
   }
 
   @Post('me/email')
+  @ApiBearerAuth('access-token')
   @JwtOnly()
   @HttpCode(HttpStatus.OK)
   async changeEmail(

@@ -2,7 +2,10 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { AuditLogService } from './audit-log.service';
 import { CurrentUser } from '../../common/decorators';
 import { UserInfoDto } from '../../common/dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Audit Logs')
+@ApiBearerAuth('access-token')
 @Controller('audit-logs')
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}

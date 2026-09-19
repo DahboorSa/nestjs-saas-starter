@@ -24,9 +24,9 @@ export class AcceptInvitationDto {
 
   @IsString()
   @IsOptional()
-  firstName: string;
+  firstName?: string;
 
   @IsString()
   @IsOptional()
-  lastName: string;
+  lastName?: string;
 }

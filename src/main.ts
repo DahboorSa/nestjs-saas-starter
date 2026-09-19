@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { setupSwagger } from './swagger.setup';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
@@ -22,6 +23,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+  setupSwagger(app);
   Logger.log('Application process is starting...');
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');

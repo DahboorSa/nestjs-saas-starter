@@ -76,7 +76,7 @@ yarn test:e2e -- --testPathPattern=auth
 
 ### E2E test suites
 
-`app`, `auth`, `users`, `organizations`, `plans`, `api-keys`, `invitations`, `webhooks`, `usage`, `subscription`, `audit-logs`, `onboarding`
+`app`, `auth`, `users`, `organizations`, `plans`, `api-keys`, `invitations`, `webhooks`, `usage`, `subscription`, `audit-logs`, `onboarding`, `swagger`
 
 ## Bootstrap Configuration (`main.ts`)
 
@@ -92,6 +92,15 @@ Key middleware applied at startup — affects all requests:
 | `whitelist: true` | ValidationPipe | Strips unknown fields from DTOs |
 | `forbidNonWhitelisted: true` | ValidationPipe | Rejects requests with unknown fields (400) |
 | `transform: true` | ValidationPipe | Auto-casts request data to DTO types |
+| Swagger | mounted at `/api/docs` via `src/swagger.setup.ts` (JSON at `/api/docs-json`) | On unless `NODE_ENV=production` — see below |
+
+### API Documentation (Swagger)
+
+`@nestjs/swagger` is wired up in `main.ts` (`setupSwagger()`) and mounted at `/api/docs`. Schemas are generated automatically from each DTO's `class-validator` decorators via the `@nestjs/swagger` CLI plugin (`nest-cli.json` → `compilerOptions.plugins`, `classValidatorShim: true`) — DTOs don't need manual `@ApiProperty()` decorators; add `?` to genuinely optional properties (paired with `@IsOptional()`) so the generated schema doesn't mark them required.
+
+- `access-token` (bearer JWT) and `apiKey` (`X-API-Key` header) security schemes are registered in `DocumentBuilder`; controllers that require auth carry `@ApiBearerAuth('access-token')`.
+- Every controller carries `@ApiTags(...)` for grouping, except `StripeWebhookController`, which is `@ApiExcludeController()`'d — it's called by Stripe, not a human via the UI.
+- Gating: enabled whenever `NODE_ENV !== 'production'`; always off in production.
 
 ## Architecture
 
@@ -205,6 +214,7 @@ Delivered via HMAC-SHA256 signed HTTP POST. Available events:
 | `mailtrap` / `nodemailer`          | Email delivery                 |
 | `@anthropic-ai/sdk`                | Anthropic Claude AI provider   |
 | `groq-sdk`                         | Groq AI provider               |
+| `@nestjs/swagger`                  | OpenAPI docs, mounted at `/api/docs` |
 
 ### Modules
 
@@ -317,7 +327,6 @@ All three steps must pass for the check to go green.
 - **Transfer ownership** — No endpoint to transfer `OWNER` role to another member.
 
 ### Developer Experience
-- **Swagger / OpenAPI docs** — No `@ApiProperty` decorators or Swagger setup. Add `@nestjs/swagger` for auto-generated API docs.
 - **Pagination & filtering** — List endpoints (members, webhooks, api-keys) return all records with no pagination or filtering support.
 
 ### AWS Integration

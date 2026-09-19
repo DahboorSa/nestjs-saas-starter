@@ -20,7 +20,10 @@ import { UserRole } from '../../enums';
 import { UserService } from '../users/user.service';
 import { UpdateUserRoleDto } from '../users/dto';
 import { AuditContextDto } from '../../common/dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Organizations')
+@ApiBearerAuth('access-token')
 @Controller('organizations')
 export class OrganizationController {
   constructor(

@@ -10,7 +10,10 @@ import {
 import { Request } from 'express';
 import { StripeWebhookService } from './stripe-webhook.service';
 import { Public } from '../../common/decorators';
+import { ApiExcludeController } from '@nestjs/swagger';
 
+// Called by Stripe, not end users — excluded from the interactive API docs.
+@ApiExcludeController()
 @Controller('stripe')
 export class StripeWebhookController {
   private readonly logger = new Logger(StripeWebhookController.name);

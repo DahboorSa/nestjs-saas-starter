@@ -4,7 +4,10 @@ import { AskDto } from './dto/ask.dto';
 import { CurrentUser } from '../../common/decorators';
 import { SkipUsageTracking } from '../../common/decorators/skip-usage-tracking.decorator';
 import { UserInfoDto } from '../../common/dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Onboarding')
+@ApiBearerAuth('access-token')
 @Controller('onboarding')
 export class OnboardingController {
   constructor(private readonly onboardingService: OnboardingService) {}

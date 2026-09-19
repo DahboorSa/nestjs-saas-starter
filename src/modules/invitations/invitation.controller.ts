@@ -20,7 +20,9 @@ import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import { InvitationItemDto, AcceptInvitationDto } from './dto';
 import { InvitationStatus, UserRole } from '../../enums';
 import { MemberInviteTrackerInterceptor } from '../../modules/invitations/interceptors/member-invite-tracker.interceptor';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Invitations')
 @Controller('invitations')
 export class InvitationController {
   constructor(private readonly invitationService: InvitationService) {}
@@ -34,6 +36,7 @@ export class InvitationController {
   }
 
   @Post()
+  @ApiBearerAuth('access-token')
   @JwtOnly()
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   @UseInterceptors(MemberInviteTrackerInterceptor)

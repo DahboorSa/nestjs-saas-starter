@@ -34,11 +34,11 @@ export class RegisterDto {
 
   @IsString()
   @IsOptional()
-  firstName: string;
+  firstName?: string;
 
   @IsString()
   @IsOptional()
-  lastName: string;
+  lastName?: string;
 
   @IsString()
   @IsEnum(Plan)

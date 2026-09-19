@@ -17,7 +17,10 @@ import {
 } from '../../common/decorators';
 import { CreateApiKeyDto } from './dto';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('API Keys')
+@ApiBearerAuth('access-token')
 @Controller('api-keys')
 export class ApiKeyController {
   constructor(private readonly apiKeyService: ApiKeyService) {}

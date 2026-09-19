@@ -49,6 +49,8 @@ flowchart TD
 
 ### Endpoint Reference
 
+> Interactive, always-current docs are served at `/api/docs` (Swagger UI) while the app is running — see [API Documentation](#api-documentation).
+
 | Screen / Feature     | Method              | Endpoint                                      | Auth                                       |
 | -------------------- | ------------------- | --------------------------------------------- | ------------------------------------------ |
 | Register             | POST                | `/auth/register`                              | Public                                     |
@@ -96,6 +98,7 @@ flowchart TD
 - **Security**: Helmet
 - **Containerization**: Docker + Docker Compose
 - **AI**: Groq (llama-3.1-8b-instant) / Anthropic Claude (claude-haiku-4-5) via pluggable provider
+- **API Docs**: Swagger / OpenAPI (`@nestjs/swagger`), served at `/api/docs`
 
 ---
 
@@ -267,6 +270,19 @@ yarn seed:run           # Populate plans table
 # Circular dependency check
 npx madge --circular src/main.ts
 ```
+
+---
+
+## API Documentation
+
+Interactive OpenAPI docs are served by `@nestjs/swagger` while the app is running:
+
+- **Swagger UI**: `http://localhost:3000/api/docs`
+- **Raw OpenAPI JSON**: `http://localhost:3000/api/docs-json`
+
+Schemas are generated automatically from each DTO's `class-validator` decorators (via the `@nestjs/swagger` CLI plugin) — no `@ApiProperty()` boilerplate needed. Click **Authorize** in the UI to try authenticated endpoints with a bearer JWT (or an API key on the few endpoints that accept one).
+
+Enabled whenever `NODE_ENV` is not `production`; always off in production.
 
 ---
 
@@ -548,6 +564,7 @@ src/
 - [x] Rate limiting (global + stricter auth limits)
 - [x] Redis caching for API keys and tokens
 - [x] Docker Compose setup (app + Postgres + Redis)
+- [x] Swagger / OpenAPI docs (`@nestjs/swagger`, served at `/api/docs`)
 
 ### In Progress / Planned
 
@@ -607,7 +624,6 @@ src/
 
 #### Developer Experience
 
-- [ ] Swagger / OpenAPI docs (`@nestjs/swagger`)
 - [ ] Pagination + filtering on list endpoints
 - [x] Unit tests for all services and controllers
 - [x] SOLID principles applied (SRP, OCP, DIP refactoring)
