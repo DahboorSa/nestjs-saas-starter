@@ -9,8 +9,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 
+// Serves GET /audit-logs: filter by org, newest first, optional date range.
+@Index('IDX_audit_logs_organization_created_at', ['organization', 'createdAt'])
 @Entity('audit_logs')
 export class AuditLogEntity {
   @PrimaryGeneratedColumn()

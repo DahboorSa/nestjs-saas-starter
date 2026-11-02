@@ -1,6 +1,7 @@
 export enum AuditAction {
   USER_REGISTER = 'auth.register',
   AUTH_LOGIN = 'auth.login',
+  AUTH_LOGIN_FAILED = 'auth.login_failed',
   AUTH_CHANGE_PASSWORD = 'auth.change_password',
   AUTH_FORGOT_PASSWORD = 'auth.forgot_password',
   AUTH_RESET_PASSWORD = 'auth.reset_password',
