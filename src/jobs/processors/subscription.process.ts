@@ -4,6 +4,7 @@ import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BillingService } from '../../modules/billing/billing.service';
+import { SubscriptionJobData } from '../job-data.types';
 
 @Injectable()
 @Processor('subscriptionQueue')
@@ -17,7 +18,7 @@ export class SubscriptionProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any>) {
+  async process(job: Job<SubscriptionJobData>) {
     try {
       const { data } = job;
       const { userId, email, orgId } = data;

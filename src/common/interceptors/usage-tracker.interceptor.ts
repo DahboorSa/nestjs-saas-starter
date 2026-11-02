@@ -12,6 +12,8 @@ import { from, map, Observable, switchMap } from 'rxjs';
 import { IS_PUBLIC_KEY, SKIP_USAGE_TRACKING_KEY } from '../decorators';
 import { UsageService } from '../../modules/usage/usage.service';
 import { UtilityService } from '../utils/utility.service';
+import { UserInfoDto } from '../dto';
+import type { Request } from 'express';
 import { AuditAction, AuditResourceType, UsageMetric } from '../../enums';
 import { AuditLogService } from '../../modules/audit-logs/audit-log.service';
 
@@ -26,7 +28,7 @@ export class UsageTrackerInterceptor implements NestInterceptor {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async logUsage(contextInfo: any): Promise<void> {
+  async logUsage(contextInfo: Request & { user: UserInfoDto }): Promise<void> {
     const { orgId, userId } = contextInfo.user;
     const period = this.utilityService.formatYYMM(new Date());
     const count = await this.usageService.incrementUsage(
@@ -49,7 +51,7 @@ export class UsageTrackerInterceptor implements NestInterceptor {
           resourceType: AuditResourceType.PLAN,
           resourceId: planId.toString(),
           ipAddress: contextInfo.ip,
-          userAgent: contextInfo.headers?.['user-agent'] ?? null,
+          userAgent: contextInfo.headers?.['user-agent'] ?? undefined,
           metadata: {
             orgId,
             userId,
@@ -60,7 +62,7 @@ export class UsageTrackerInterceptor implements NestInterceptor {
         );
     }
   }
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const isPublic = this.reflector.getAllAndOverride(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),

@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { OrganizationService } from '../organizations/organization.service';
 import { PaymentStatus } from '../../enums';
+import { StripeEventObject } from './stripe.types';
 
 @Injectable()
 export class StripeWebhookService {
@@ -20,13 +21,13 @@ export class StripeWebhookService {
     try {
       switch (event.type) {
         case 'customer.subscription.updated':
-          await this.handleSubscriptionUpdated(event.data.object as any);
+          await this.handleSubscriptionUpdated(event.data.object);
           break;
         case 'customer.subscription.deleted':
-          await this.handleSubscriptionDeleted(event.data.object as any);
+          await this.handleSubscriptionDeleted(event.data.object);
           break;
         case 'invoice.payment_failed':
-          await this.handleInvoicePaymentFailed(event.data.object as any);
+          await this.handleInvoicePaymentFailed(event.data.object);
           break;
         default:
           this.logger.log(`Unhandled Stripe event: ${event.type}`);
@@ -42,7 +43,9 @@ export class StripeWebhookService {
     }
   }
 
-  private async handleSubscriptionUpdated(subscription: any): Promise<void> {
+  private async handleSubscriptionUpdated(
+    subscription: StripeEventObject<'customer.subscription.updated'>,
+  ): Promise<void> {
     const org = await this.organizationService.getOneBy({
       stripeSubscriptionId: subscription.id,
     });
@@ -73,7 +76,9 @@ export class StripeWebhookService {
         return;
     }
 
-    const fields: any = { paymentStatus };
+    const fields: Parameters<OrganizationService['updateFields']>[1] = {
+      paymentStatus,
+    };
     if (paymentStatus === PaymentStatus.CANCELLED) {
       fields.isActive = false;
     }
@@ -84,7 +89,9 @@ export class StripeWebhookService {
     );
   }
 
-  private async handleSubscriptionDeleted(subscription: any): Promise<void> {
+  private async handleSubscriptionDeleted(
+    subscription: StripeEventObject<'customer.subscription.deleted'>,
+  ): Promise<void> {
     const org = await this.organizationService.getOneBy({
       stripeSubscriptionId: subscription.id,
     });
@@ -101,19 +108,25 @@ export class StripeWebhookService {
     this.logger.warn(`Org ${org.id} subscription deleted → CANCELLED`);
   }
 
-  private async handleInvoicePaymentFailed(invoice: any): Promise<void> {
-    if (!invoice.customer) {
+  private async handleInvoicePaymentFailed(
+    invoice: StripeEventObject<'invoice.payment_failed'>,
+  ): Promise<void> {
+    const customerId =
+      typeof invoice.customer === 'string'
+        ? invoice.customer
+        : invoice.customer?.id;
+    if (!customerId) {
       this.logger.warn(
         'invoice.payment_failed received with no customer ID — skipping',
       );
       return;
     }
     const org = await this.organizationService.getOneBy({
-      stripeCustomerId: invoice.customer,
+      stripeCustomerId: customerId,
     });
     if (!org) {
       this.logger.warn(
-        `No org found for customer ${invoice.customer} (invoice.payment_failed)`,
+        `No org found for customer ${customerId} (invoice.payment_failed)`,
       );
       return;
     }

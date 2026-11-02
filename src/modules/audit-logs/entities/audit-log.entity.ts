@@ -28,7 +28,7 @@ export class AuditLogEntity {
   @Column({ name: 'resource_id' })
   resourceId: string;
   @Column({ type: 'jsonb', default: {} })
-  metadata: any;
+  metadata: Record<string, unknown>;
   @Column({ nullable: true, name: 'ip_address' })
   ipAddress: string;
   @Column({ nullable: true, name: 'user_agent' })

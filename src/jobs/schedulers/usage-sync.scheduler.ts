@@ -6,6 +6,8 @@ import { CacheService } from '../../cache/cache.service';
 import { UsageRecordService } from '../../modules/usage-records/usage-record.service';
 import { UsageMetric } from '../../enums';
 
+type PgQueryError = QueryFailedError & { code?: string; detail?: string };
+
 @Injectable()
 export class UsageSyncScheduler {
   private readonly logger = new Logger(UsageSyncScheduler.name);
@@ -46,18 +48,16 @@ export class UsageSyncScheduler {
         });
         this.logger.debug(`Successfully synced key="${key}"`);
       } catch (error) {
-        if (
-          error instanceof QueryFailedError &&
-          (error as any).code === '23503'
-        ) {
+        const pgError = error as PgQueryError;
+        if (error instanceof QueryFailedError && pgError.code === '23503') {
           this.logger.warn(
-            `FK violation syncing key="${key}" orgId="${orgId}" — org may not exist in DB. Detail: ${(error as any).detail ?? (error as any).message}`,
+            `FK violation syncing key="${key}" orgId="${orgId}" — org may not exist in DB. Detail: ${pgError.detail ?? pgError.message}`,
           );
           await this.cacheService.delete(key);
         } else {
           logError(
             this.logger,
-            `Failed to sync usage for key="${key}" orgId="${orgId}" (code ${(error as any).code})`,
+            `Failed to sync usage for key="${key}" orgId="${orgId}" (code ${pgError.code})`,
             error,
           );
         }

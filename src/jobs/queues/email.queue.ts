@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
+import { EmailJobData } from '../job-data.types';
 
 const EMAIL_FAILED_JOB_RETENTION_SECONDS = 24 * 60 * 60;
 
@@ -8,7 +9,7 @@ const EMAIL_FAILED_JOB_RETENTION_SECONDS = 24 * 60 * 60;
 export class EmailQueueService {
   constructor(@InjectQueue('emailQueue') private emailQueue: Queue) {}
 
-  async add(consumerName: string, data: any) {
+  async add(consumerName: string, data: EmailJobData) {
     await this.emailQueue.add(consumerName, data, {
       removeOnComplete: true,
       // Job data holds the raw email token. Keep failed jobs for debugging, but

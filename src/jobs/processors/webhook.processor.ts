@@ -1,4 +1,5 @@
 import { logError } from '../../common/utils/log-error.util';
+import { WebhookJobData } from '../job-data.types';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
@@ -33,7 +34,7 @@ export class WebhookProcessor extends WorkerHost {
 
     return `sha256=${signature}`;
   }
-  async process(job: Job<any>) {
+  async process(job: Job<WebhookJobData>) {
     const { data, name, id, attemptsMade } = job;
     const { orgId, webhookEndpointId, event, url, secret } = data;
     // Never log `data` itself: it carries the endpoint secret, URL and payload.
@@ -44,7 +45,7 @@ export class WebhookProcessor extends WorkerHost {
     // One delivery row per job: created PENDING on the first attempt, then
     // updated in place on every retry. The id is persisted on the job so a
     // retry (possibly on another worker) reuses the same row.
-    let deliveryId: string = data.deliveryId;
+    let deliveryId = data.deliveryId;
     if (!deliveryId) {
       deliveryId = await this.webhookDeliveryService.createPending(
         webhookEndpointId,

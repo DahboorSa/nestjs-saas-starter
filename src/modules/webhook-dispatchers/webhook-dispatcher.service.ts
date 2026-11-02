@@ -14,7 +14,11 @@ export class WebhookDispatcherService {
     private readonly webhookQueue: WebhookQueueService,
   ) {}
 
-  async dispatch(orgId: string, event: WebhookEvent, payload: any) {
+  async dispatch(
+    orgId: string,
+    event: WebhookEvent,
+    payload: Record<string, unknown>,
+  ) {
     const webhookRecords = await this.webhookEndpointRepository.find({
       where: {
         organization: { id: orgId },

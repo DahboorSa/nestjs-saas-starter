@@ -21,7 +21,7 @@ export class WebhookService {
     auditContext: AuditContextDto,
     action: AuditAction,
     resourceId: string,
-    metadata: Record<string, any>,
+    metadata: Record<string, unknown>,
   ) {
     this.auditLogService
       .create({
