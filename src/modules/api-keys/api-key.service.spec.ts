@@ -86,8 +86,6 @@ describe('ApiKeyService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── hashKey ──────────────────────────────────────────────────────────────────
-
   describe('hashKey', () => {
     it('should return a consistent SHA256 hash', () => {
       const hash1 = service.hashKey('my-api-key');
@@ -101,8 +99,6 @@ describe('ApiKeyService', () => {
       expect(service.hashKey('key-a')).not.toBe(service.hashKey('key-b'));
     });
   });
-
-  // ─── getByHash ────────────────────────────────────────────────────────────────
 
   describe('getByHash', () => {
     it('should return null if key not found', async () => {
@@ -121,8 +117,6 @@ describe('ApiKeyService', () => {
       expect(result).toMatchObject({ id: 1, name: 'Test Key' });
     });
   });
-
-  // ─── getByOrgId ───────────────────────────────────────────────────────────────
 
   describe('getByOrgId', () => {
     it('should throw NotFoundException if organization not found', async () => {
@@ -163,8 +157,6 @@ describe('ApiKeyService', () => {
       expect(result).toEqual([]);
     });
   });
-
-  // ─── create ───────────────────────────────────────────────────────────────────
 
   describe('create', () => {
     const createDto = { name: 'My Key', scopes: ['read'] };
@@ -238,8 +230,6 @@ describe('ApiKeyService', () => {
       expect(result.apiKey).toBeDefined();
     });
   });
-
-  // ─── remove ───────────────────────────────────────────────────────────────────
 
   describe('remove', () => {
     it('should throw NotFoundException if api key not found', async () => {

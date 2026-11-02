@@ -40,7 +40,6 @@ describe('Invitations (e2e)', () => {
 
   describe('GET /invitations', () => {
     it('returns 200 with pending invitations list', async () => {
-      // Ensure at least one invitation exists
       await request(server)
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)

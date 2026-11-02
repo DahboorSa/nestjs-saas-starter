@@ -32,8 +32,6 @@ describe('PaymentMethodController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /payment-methods ───────────────────────────────────────────────────
-
   describe('getPaymentMethods', () => {
     it('should return payment methods from the billing service', async () => {
       const expected = { data: [{ id: 'pm_123' }] };

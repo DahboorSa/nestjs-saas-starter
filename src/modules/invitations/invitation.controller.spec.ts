@@ -47,8 +47,6 @@ describe('InvitationController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /invitations ─────────────────────────────────────────────────────────
-
   describe('getList', () => {
     it('should return pending invitations by default', async () => {
       mockInvitationService.getList.mockResolvedValue([mockInvitation]);
@@ -82,8 +80,6 @@ describe('InvitationController', () => {
     });
   });
 
-  // ─── POST /invitations ────────────────────────────────────────────────────────
-
   describe('sendInvitations', () => {
     it('should send invitations and return results', async () => {
       const body = [
@@ -108,8 +104,6 @@ describe('InvitationController', () => {
       );
     });
   });
-
-  // ─── POST /invitations/accept ─────────────────────────────────────────────────
 
   describe('acceptInvitation', () => {
     it('should accept invitation and return tokens', async () => {

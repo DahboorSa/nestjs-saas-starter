@@ -55,8 +55,6 @@ describe('WebhookService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── findAll ──────────────────────────────────────────────────────────────────
-
   describe('findAll', () => {
     it('should return mapped active webhooks for org', async () => {
       mockWebhookRepository.find.mockResolvedValue([mockWebhook]);
@@ -83,8 +81,6 @@ describe('WebhookService', () => {
       expect(result).toEqual([]);
     });
   });
-
-  // ─── create ───────────────────────────────────────────────────────────────────
 
   describe('create', () => {
     it('should create webhook and return it with secret', async () => {
@@ -121,8 +117,6 @@ describe('WebhookService', () => {
     });
   });
 
-  // ─── getActiveWebhookEvents ───────────────────────────────────────────────────
-
   describe('getActiveWebhookEvents', () => {
     it('should return count of active webhooks', async () => {
       mockWebhookRepository.count.mockResolvedValue(3);
@@ -135,8 +129,6 @@ describe('WebhookService', () => {
       });
     });
   });
-
-  // ─── remove ───────────────────────────────────────────────────────────────────
 
   describe('remove', () => {
     it('should throw NotFoundException if webhook not found', async () => {

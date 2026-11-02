@@ -39,8 +39,6 @@ describe('ApiKeyController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /api-keys ────────────────────────────────────────────────────────────
-
   describe('findAll', () => {
     it('should return api keys for the organization', async () => {
       const expected = [mockApiKey];
@@ -52,8 +50,6 @@ describe('ApiKeyController', () => {
       expect(mockApiKeyService.getByOrgId).toHaveBeenCalledWith('org-1');
     });
   });
-
-  // ─── POST /api-keys ───────────────────────────────────────────────────────────
 
   describe('create', () => {
     it('should create and return new api key with message', async () => {
@@ -75,8 +71,6 @@ describe('ApiKeyController', () => {
       );
     });
   });
-
-  // ─── DELETE /api-keys/:id ─────────────────────────────────────────────────────
 
   describe('remove', () => {
     it('should deactivate and return the api key', async () => {

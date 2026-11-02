@@ -1,6 +1,4 @@
-// Runs before any module is imported — sets fixed values for e2e tests.
-// All values are hardcoded to guarantee test isolation regardless of local
-// .env or GitHub Secrets. Tests always hit the test containers, never prod/dev.
+// Runs before any module loads; fixed values keep e2e independent of .env.
 
 // Database — always points to docker-compose.test.yml containers
 process.env.DB_HOST = 'localhost';

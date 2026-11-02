@@ -8,7 +8,6 @@ import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  //mitigates risks like cross-site scripting (XSS), information leakage, and other common attacks
   app.use(helmetMiddleware());
   app.use(cookieParser());
   app.enableCors({

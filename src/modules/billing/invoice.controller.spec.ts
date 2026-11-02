@@ -32,8 +32,6 @@ describe('InvoiceController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /invoices ──────────────────────────────────────────────────────────
-
   describe('getInvoices', () => {
     it('should return invoices from the billing service', async () => {
       const expected = { data: [{ id: 'in_123' }] };

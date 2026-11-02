@@ -15,7 +15,7 @@ export class StripeWebhookService {
   ) {}
 
   async handleWebhook(payload: Buffer, signature: string): Promise<void> {
-    // constructWebhookEvent throws StripeSignatureVerificationError if invalid — let it propagate to controller
+    // Throws on an invalid signature; the controller turns that into a 400
     const event = this.stripeService.constructWebhookEvent(payload, signature);
 
     try {

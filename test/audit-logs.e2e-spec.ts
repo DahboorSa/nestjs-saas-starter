@@ -20,8 +20,6 @@ describe('Audit Logs (e2e)', () => {
     await closeTestApp(app);
   });
 
-  // ─── GET /audit-logs ──────────────────────────────────────────────────────────
-
   describe('GET /audit-logs', () => {
     it('returns 401 when no auth token is provided', async () => {
       const res = await request(server).get('/audit-logs');
@@ -135,7 +133,6 @@ describe('Audit Logs (e2e)', () => {
         .get('/audit-logs')
         .set('Authorization', `Bearer ${orgB.accessToken}`);
 
-      // Both orgs see their own register event
       const actionsA: string[] = resA.body.map((l: any) => l.action);
       const actionsB: string[] = resB.body.map((l: any) => l.action);
       expect(actionsA).toContain('auth.register');

@@ -181,7 +181,6 @@ export class OrganizationService {
     );
   }
 
-  // Single bulk UPDATE; returns the number of rows changed.
   async updateMany(
     where: FindOptionsWhere<OrganizationEntity>,
     fields: QueryDeepPartialEntity<OrganizationEntity>,

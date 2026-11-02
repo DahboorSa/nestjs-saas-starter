@@ -38,8 +38,6 @@ describe('UsageRecordService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── create ───────────────────────────────────────────────────────────────────
-
   describe('create', () => {
     it('should upsert a single usage record', async () => {
       mockUsageRecordRepository.upsert.mockResolvedValue(undefined);

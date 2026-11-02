@@ -39,8 +39,6 @@ describe('AuthController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── register ─────────────────────────────────────────────────────────────────
-
   describe('register', () => {
     it('should call authService.register and return result', async () => {
       const dto = {
@@ -61,8 +59,6 @@ describe('AuthController', () => {
     });
   });
 
-  // ─── verifyEmail ──────────────────────────────────────────────────────────────
-
   describe('verifyEmail', () => {
     it('should call authService.verifyEmail with token', async () => {
       const expected = { message: 'Email verified' };
@@ -77,8 +73,6 @@ describe('AuthController', () => {
       );
     });
   });
-
-  // ─── login ────────────────────────────────────────────────────────────────────
 
   describe('login', () => {
     it('should set refresh cookie and return only accessToken', async () => {
@@ -103,8 +97,6 @@ describe('AuthController', () => {
       );
     });
   });
-
-  // ─── refresh ──────────────────────────────────────────────────────────────────
 
   describe('refresh', () => {
     it('should read cookie, rotate it, and return new accessToken', async () => {
@@ -143,8 +135,6 @@ describe('AuthController', () => {
     });
   });
 
-  // ─── changePassword ───────────────────────────────────────────────────────────
-
   describe('changePassword', () => {
     it('should call authService.changePassword, set cookie, and return accessToken', async () => {
       const body = {
@@ -179,8 +169,6 @@ describe('AuthController', () => {
     });
   });
 
-  // ─── forgotPassword ───────────────────────────────────────────────────────────
-
   describe('forgotPassword', () => {
     it('should call authService.forgotPassword', async () => {
       const body = { email: 'test@example.com' } as any;
@@ -198,8 +186,6 @@ describe('AuthController', () => {
       );
     });
   });
-
-  // ─── resetPassword ───────────────────────────────────────────────────────────
 
   describe('resetPassword', () => {
     it('should call authService.resetPassword, set cookie, and return accessToken', async () => {
@@ -233,8 +219,6 @@ describe('AuthController', () => {
     });
   });
 
-  // ─── logout ───────────────────────────────────────────────────────────────────
-
   describe('logout', () => {
     it('should clear refresh cookie and call authService.logout', async () => {
       const res = mockRes();
@@ -258,8 +242,6 @@ describe('AuthController', () => {
       );
     });
   });
-
-  // ─── resendVerifyEmail ────────────────────────────────────────────────────────
 
   describe('resendVerifyEmail', () => {
     it('should call authService.resendVerifyEmail', async () => {

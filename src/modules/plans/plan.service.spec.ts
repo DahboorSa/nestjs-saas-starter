@@ -40,8 +40,6 @@ describe('PlanService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── getDefault ───────────────────────────────────────────────────────────────
-
   describe('getDefault', () => {
     it('should return the default plan', async () => {
       mockPlanRepository.findOne.mockResolvedValue(mockPlan);
@@ -62,8 +60,6 @@ describe('PlanService', () => {
       expect(result).toBeNull();
     });
   });
-
-  // ─── getAll ───────────────────────────────────────────────────────────────────
 
   describe('getAll', () => {
     it('should return all plans', async () => {
@@ -87,8 +83,6 @@ describe('PlanService', () => {
       expect(result).toEqual([]);
     });
   });
-
-  // ─── getByName ────────────────────────────────────────────────────────────────
 
   describe('getByName', () => {
     it('should return plan by name', async () => {

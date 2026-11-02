@@ -33,8 +33,6 @@ describe('AuditLogService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── create ───────────────────────────────────────────────────────────────────
-
   describe('create', () => {
     const auditLogData = {
       action: AuditAction.AUTH_LOGIN,
@@ -79,8 +77,6 @@ describe('AuditLogService', () => {
       await expect(service.create(auditLogData)).rejects.toThrow('DB error');
     });
   });
-
-  // ─── findByOrganization ───────────────────────────────────────────────────────
 
   describe('findByOrganization', () => {
     beforeEach(() => {

@@ -72,8 +72,6 @@ describe('OrganizationService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── getByName ────────────────────────────────────────────────────────────────
-
   describe('getByName', () => {
     it('should return organization by name', async () => {
       mockOrganizationRepository.findOne.mockResolvedValue(mockOrg);
@@ -95,8 +93,6 @@ describe('OrganizationService', () => {
     });
   });
 
-  // ─── getBySlug ────────────────────────────────────────────────────────────────
-
   describe('getBySlug', () => {
     it('should return organization by slug', async () => {
       mockOrganizationRepository.findOne.mockResolvedValue(mockOrg);
@@ -117,8 +113,6 @@ describe('OrganizationService', () => {
       expect(result).toBeNull();
     });
   });
-
-  // ─── getById ──────────────────────────────────────────────────────────────────
 
   describe('getById', () => {
     it('should return organization with plan relation', async () => {
@@ -142,8 +136,6 @@ describe('OrganizationService', () => {
     });
   });
 
-  // ─── create ───────────────────────────────────────────────────────────────────
-
   describe('create', () => {
     it('should create and return organization', async () => {
       mockOrganizationRepository.create.mockReturnValue(mockOrg);
@@ -159,8 +151,6 @@ describe('OrganizationService', () => {
       expect(mockOrganizationRepository.save).toHaveBeenCalled();
     });
   });
-
-  // ─── getDetails ───────────────────────────────────────────────────────────────
 
   describe('getDetails', () => {
     it('should return active organization with plan relation', async () => {
@@ -184,8 +174,6 @@ describe('OrganizationService', () => {
     });
   });
 
-  // ─── getMemberLimitInfo ───────────────────────────────────────────────────────
-
   describe('getMemberLimitInfo', () => {
     it('should return plan and active member count', async () => {
       mockOrganizationRepository.findOne.mockResolvedValue(mockOrg);
@@ -197,8 +185,6 @@ describe('OrganizationService', () => {
       expect(mockUserService.getTotalActiveUsers).toHaveBeenCalledWith('org-1');
     });
   });
-
-  // ─── updateName ───────────────────────────────────────────────────────────────
 
   describe('updateName', () => {
     it('should throw NotFoundException if organization not found', async () => {
@@ -306,8 +292,6 @@ describe('OrganizationService', () => {
       });
     });
   });
-
-  // ─── updatePlan ───────────────────────────────────────────────────────────────
 
   describe('updatePlan', () => {
     it('should throw NotFoundException if organization not found', async () => {

@@ -28,32 +28,3 @@ export class MemberInviteTrackerInterceptor implements NestInterceptor {
     );
   }
 }
-/**
- * returns an Observable because:
- * Nest’s internal HTTP pipeline is reactive
- * Interceptors can transform the stream
- * Multiple interceptors can chain together
- * Errors can be handled reactively
- * Streaming responses are supported (SSE, websockets, etc.)
- * So returning an Observable keeps everything in the same reactive ecosystem.
- * 
- * returns an Observable because:
-Nest’s internal HTTP pipeline is reactive
-Interceptors can transform the stream
-Multiple interceptors can chain together
-Errors can be handled reactively
-Streaming responses are supported (SSE, websockets, etc.)
-So returning an Observable keeps everything in the same reactive ecosystem.
-
-map vs switchMap
-Use map when:
-No async calls inside
-No new Observables
-Just modifying the response
----
-Use switchMap when:
-Call an async function
-Return another Observable
-Flatten inner Observables
-Replace the stream with a new one
- */

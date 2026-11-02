@@ -85,8 +85,6 @@ describe('UserService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── findAll ──────────────────────────────────────────────────────────────────
-
   describe('findAll', () => {
     it('should return mapped active users for the organization', async () => {
       mockUserRepository.find.mockResolvedValue([mockUser]);
@@ -108,8 +106,6 @@ describe('UserService', () => {
       expect(result).toEqual([]);
     });
   });
-
-  // ─── getByEmail ───────────────────────────────────────────────────────────────
 
   describe('getByEmail', () => {
     it('should return user without org relation', async () => {
@@ -136,8 +132,6 @@ describe('UserService', () => {
     });
   });
 
-  // ─── getById ──────────────────────────────────────────────────────────────────
-
   describe('getById', () => {
     it('should return user without org relation', async () => {
       mockUserRepository.findOneBy.mockResolvedValue(mockUser);
@@ -159,8 +153,6 @@ describe('UserService', () => {
       });
     });
   });
-
-  // ─── getDetails ───────────────────────────────────────────────────────────────
 
   describe('getDetails', () => {
     it('should return mapped user details', async () => {
@@ -186,8 +178,6 @@ describe('UserService', () => {
     });
   });
 
-  // ─── preload ──────────────────────────────────────────────────────────────────
-
   describe('preload', () => {
     it('should throw NotFoundException if user not found', async () => {
       mockUserRepository.preload.mockResolvedValue(null);
@@ -207,8 +197,6 @@ describe('UserService', () => {
       expect(result).toEqual(updated);
     });
   });
-
-  // ─── remove ───────────────────────────────────────────────────────────────────
 
   describe('remove', () => {
     const currentUser = {
@@ -295,8 +283,6 @@ describe('UserService', () => {
       );
     });
   });
-
-  // ─── updateRole ───────────────────────────────────────────────────────────────
 
   describe('updateRole', () => {
     const currentUser = {
@@ -401,8 +387,6 @@ describe('UserService', () => {
     });
   });
 
-  // ─── update ───────────────────────────────────────────────────────────────────
-
   describe('update', () => {
     const currentUser = { userId: 'user-1', orgId: 'org-1' } as any;
 
@@ -429,8 +413,6 @@ describe('UserService', () => {
       expect(result).toMatchObject({ id: 'user-1' });
     });
   });
-
-  // ─── changeEmail ──────────────────────────────────────────────────────────────
 
   describe('changeEmail', () => {
     const currentUser = {
@@ -497,8 +479,6 @@ describe('UserService', () => {
     });
   });
 
-  // ─── confirmEmailChange ───────────────────────────────────────────────────────
-
   describe('confirmEmailChange', () => {
     const tokenData = JSON.stringify({
       userId: 'user-1',
@@ -564,8 +544,6 @@ describe('UserService', () => {
     });
   });
 
-  // ─── updateLastLogin ──────────────────────────────────────────────────────────
-
   describe('updateLastLogin', () => {
     it('should save lastLoginAt for the user', async () => {
       mockUserRepository.save.mockResolvedValue(undefined);
@@ -580,8 +558,6 @@ describe('UserService', () => {
       );
     });
   });
-
-  // ─── updatePassword ───────────────────────────────────────────────────────────
 
   describe('updatePassword', () => {
     it('should merge and save new password hash', async () => {

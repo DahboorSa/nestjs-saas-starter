@@ -46,8 +46,6 @@ describe('WebhookController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /webhooks ────────────────────────────────────────────────────────────
-
   describe('findAll', () => {
     it('should return all active webhooks for the org', async () => {
       mockWebhookService.findAll.mockResolvedValue([mockWebhook]);
@@ -67,8 +65,6 @@ describe('WebhookController', () => {
     });
   });
 
-  // ─── POST /webhooks ───────────────────────────────────────────────────────────
-
   describe('create', () => {
     it('should create and return new webhook with secret', async () => {
       const body = {
@@ -87,8 +83,6 @@ describe('WebhookController', () => {
       );
     });
   });
-
-  // ─── DELETE /webhooks/:id ─────────────────────────────────────────────────────
 
   describe('delete', () => {
     it('should deactivate webhook and return mapped data', async () => {

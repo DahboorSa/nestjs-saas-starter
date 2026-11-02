@@ -51,10 +51,8 @@ type LoginFailureReason =
 const REGISTER_RESPONSE_MESSAGE =
   'Registration received. Please check your email to continue.';
 
-// Verified against when a login email matches no account, so that path costs
-// the same argon2 time as a wrong password and response time does not reveal
-// which emails are registered. Hashed lazily with the same default parameters
-// as real password hashes.
+// Verified when a login email matches no account, so unknown emails cost the
+// same argon2 time as a wrong password. Hashed lazily with default parameters.
 let dummyPasswordHash: Promise<string> | undefined;
 const getDummyPasswordHash = () =>
   (dummyPasswordHash ??= argon.hash('timing-equalisation-only'));

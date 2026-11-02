@@ -55,8 +55,6 @@ describe('BillingService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── createSubscription ────────────────────────────────────────────────────
-
   describe('createSubscription', () => {
     it('should create customer if org has no stripeCustomerId', async () => {
       mockOrganizationService.getById.mockResolvedValue({ ...mockOrg });
@@ -174,8 +172,6 @@ describe('BillingService', () => {
     });
   });
 
-  // ─── getSubscription ───────────────────────────────────────────────────────
-
   describe('getSubscription', () => {
     it('should return null subscription if org has no stripeSubscriptionId', async () => {
       mockOrganizationService.getById.mockResolvedValue({ ...mockOrg });
@@ -287,8 +283,6 @@ describe('BillingService', () => {
     });
   });
 
-  // ─── getPaymentMethods ──────────────────────────────────────────────────────
-
   describe('getPaymentMethods', () => {
     it('should return null if org has no stripeCustomerId', async () => {
       mockOrganizationService.getById.mockResolvedValue({ ...mockOrg });
@@ -315,8 +309,6 @@ describe('BillingService', () => {
       expect(result).toEqual(expected);
     });
   });
-
-  // ─── getInvoices ────────────────────────────────────────────────────────────
 
   describe('getInvoices', () => {
     it('should return empty array if org has no stripeCustomerId', async () => {

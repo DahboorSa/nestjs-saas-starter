@@ -6,9 +6,7 @@ import { Logger } from '@nestjs/common';
 export default class PlanSeeder implements Seeder {
   private logger = new Logger(PlanSeeder.name);
   public async run(dataSource: DataSource): Promise<void> {
-    // Get repository
     const repository = dataSource.getRepository(PlanEntity);
-    //check if plan already seeded skip
     const count = await repository.count();
     if (count > 0) {
       this.logger.log('Plan already seeded');

@@ -34,8 +34,6 @@ describe('UserController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /users/me ────────────────────────────────────────────────────────────
-
   describe('findAll', () => {
     it('should return current user details', async () => {
       const expected = {
@@ -51,8 +49,6 @@ describe('UserController', () => {
       expect(mockUserService.getDetails).toHaveBeenCalledWith(userInfo);
     });
   });
-
-  // ─── PATCH /users/me ──────────────────────────────────────────────────────────
 
   describe('update', () => {
     it('should update and return user', async () => {
@@ -71,8 +67,6 @@ describe('UserController', () => {
     });
   });
 
-  // ─── POST /users/me/email ─────────────────────────────────────────────────────
-
   describe('changeEmail', () => {
     it('should request email change', async () => {
       const body = { email: 'new@example.com' } as any;
@@ -85,8 +79,6 @@ describe('UserController', () => {
       expect(mockUserService.changeEmail).toHaveBeenCalledWith(userInfo, body);
     });
   });
-
-  // ─── POST /users/me/email/confirm ─────────────────────────────────────────────
 
   describe('confirmEmail', () => {
     it('should confirm email change and return new tokens', async () => {

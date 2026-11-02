@@ -32,8 +32,6 @@ describe('PlanController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /plans ───────────────────────────────────────────────────────────────
-
   describe('getList', () => {
     it('should return all plans', async () => {
       const plans = [

@@ -33,8 +33,6 @@ describe('AuditLogController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /audit-logs ──────────────────────────────────────────────────────────
-
   describe('getAuditLogs', () => {
     it('calls findByOrganization with orgId and no dates when no query params', async () => {
       mockAuditLogService.findByOrganization.mockResolvedValue([]);

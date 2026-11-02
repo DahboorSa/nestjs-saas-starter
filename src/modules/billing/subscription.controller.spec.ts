@@ -34,8 +34,6 @@ describe('SubscriptionController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /subscription ─────────────────────────────────────────────────────
-
   describe('getSubscription', () => {
     it('should return subscription data', async () => {
       const expected = {

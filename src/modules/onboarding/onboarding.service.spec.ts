@@ -69,8 +69,6 @@ describe('OnboardingService', () => {
     expect(service).toBeDefined();
   });
 
-  // ─── ask ──────────────────────────────────────────────────────────────────────
-
   describe('ask', () => {
     it('should return an answer from the AI provider', async () => {
       const result = await service.ask('How do I invite a member?', 'org-1');

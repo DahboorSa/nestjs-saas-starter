@@ -40,8 +40,6 @@ describe('OrganizationController', () => {
     expect(controller).toBeDefined();
   });
 
-  // ─── GET /organizations/me ────────────────────────────────────────────────────
-
   describe('getOrganizations', () => {
     it('should return organization details', async () => {
       mockOrganizationService.getDetails.mockResolvedValue(mockOrg);
@@ -52,8 +50,6 @@ describe('OrganizationController', () => {
       expect(mockOrganizationService.getDetails).toHaveBeenCalledWith(userInfo);
     });
   });
-
-  // ─── GET /organizations/members ───────────────────────────────────────────────
 
   describe('getMembers', () => {
     it('should return all members of the organization', async () => {
@@ -66,8 +62,6 @@ describe('OrganizationController', () => {
       expect(mockUserService.findAll).toHaveBeenCalledWith('org-1');
     });
   });
-
-  // ─── PUT /organizations/me ────────────────────────────────────────────────────
 
   describe('updateOrganizations', () => {
     it('should update and return organization', async () => {
@@ -89,8 +83,6 @@ describe('OrganizationController', () => {
       );
     });
   });
-
-  // ─── PUT /organizations/members/:userId/role ──────────────────────────────────
 
   describe('updateMemberRole', () => {
     it('should update member role', async () => {
@@ -116,8 +108,6 @@ describe('OrganizationController', () => {
       );
     });
   });
-
-  // ─── DELETE /organizations/members/:userId ────────────────────────────────────
 
   describe('removeMember', () => {
     it('should remove member and return result', async () => {

@@ -26,11 +26,11 @@ export class CacheService {
   }
 
   async flushAll() {
-    return this.redis.flushall(); // all db in redis server
+    return this.redis.flushall();
   }
 
   async flush() {
-    return this.redis.flushdb(); // current db
+    return this.redis.flushdb();
   }
 
   async incr(key: string): Promise<number> {
