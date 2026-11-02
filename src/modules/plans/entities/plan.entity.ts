@@ -15,8 +15,8 @@ export class PlanEntity {
   name: string;
   @Column('int')
   price: number;
-  @Column({ nullable: true, name: 'stripe_price_id' })
-  stripePriceId: string;
+  @Column({ type: 'varchar', nullable: true, name: 'stripe_price_id' })
+  stripePriceId: string | null;
   @Column({ type: 'int', default: 0, name: 'trial_days' })
   trialDays: number;
   @Column({ type: 'jsonb' })

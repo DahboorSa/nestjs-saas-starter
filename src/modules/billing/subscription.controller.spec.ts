@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionController } from './subscription.controller';
 import { BillingService } from './billing.service';
+import { SubscriptionResponse } from './billing.types';
 import { PaymentStatus } from '../../enums';
 
 const mockBillingService = {
@@ -67,7 +68,7 @@ describe('SubscriptionController', () => {
     });
 
     it('should return null subscription if no subscription exists', async () => {
-      const expected = {
+      const expected: SubscriptionResponse = {
         paymentStatus: PaymentStatus.FREE,
         subscription: null,
         paymentMethods: [],

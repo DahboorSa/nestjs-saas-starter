@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../../cache/cache.service';
 import { OrganizationEntity } from '../organizations/entities/organization.entity';
@@ -40,7 +40,7 @@ export class UsageService {
     const key = `usage:${orgId}:${metric}:${period}`;
     const currentUsage = await this.cacheService.get(key);
     this.logger.debug(`GET ${key} → ${currentUsage}`);
-    return +currentUsage || 0;
+    return Number(currentUsage) || 0;
   }
 
   async isLimitExceeded(orgId: string): Promise<boolean> {
@@ -53,7 +53,11 @@ export class UsageService {
   async setLimitExceeded(
     orgId: string,
     ttl: number,
-    { limit, current, period },
+    {
+      limit,
+      current,
+      period,
+    }: { limit: number; current: number; period: string },
   ): Promise<void> {
     await this.cacheService.set(`usage:${orgId}:limit_exceeded`, true, ttl);
     this.dispatcher
@@ -97,6 +101,8 @@ export class UsageService {
       where: { id: orgId },
       relations: ['plan'],
     });
+
+    if (!organization) throw new NotFoundException('Organization not found');
 
     const plan = organization.plan;
     const { limits } = plan;

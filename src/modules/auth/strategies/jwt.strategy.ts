@@ -8,6 +8,11 @@ import { UserInfoDto } from '../../../common/dto';
 import { CacheService } from '../../../cache/cache.service';
 import { hashToken } from '../../../common/utils/hash-token.util';
 
+// Claims signed into the access token by JwtUtilityService.generateToken()
+interface JwtPayload extends Omit<UserInfoDto, 'expiresIn' | 'token'> {
+  exp: number;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
@@ -16,15 +21,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private readonly cacheService: CacheService,
   ) {
     super({
-      secretOrKey: config.get<string>('jwt.jwtSecret'),
+      secretOrKey: config.getOrThrow<string>('jwt.jwtSecret'),
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       passReqToCallback: true,
     });
   }
 
-  async validate(req: Request, payload: any): Promise<UserInfoDto> {
+  async validate(req: Request, payload: JwtPayload): Promise<UserInfoDto> {
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    // Passport has already extracted and verified it; this narrows the type
+    if (!token) throw new UnauthorizedException('Missing token');
 
     const isBlacklisted = await this.cacheService.get(
       `auth:blacklist:${hashToken(token)}`,

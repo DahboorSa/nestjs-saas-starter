@@ -17,8 +17,8 @@ export class WebhookDeliveryEntity {
   @Column()
   event: string;
   @Column({ type: 'jsonb' })
-  payload: any;
-  @Column({ nullable: true, name: 'status_code' })
+  payload: Record<string, unknown>;
+  @Column({ type: 'int', nullable: true, name: 'status_code' })
   statusCode: number | null;
   @Column()
   attempt: number;

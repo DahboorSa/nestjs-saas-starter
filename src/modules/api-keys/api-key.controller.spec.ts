@@ -18,7 +18,7 @@ const mockApiKey = {
   scopes: ['read'],
   isActive: true,
   createdAt: new Date(),
-  lastUsedAt: null,
+  lastUsedAt: null as Date | null,
 };
 
 describe('ApiKeyController', () => {

@@ -47,13 +47,13 @@ import { HealthModule } from './modules/health/health.module';
         throttlers: [
           {
             name: 'api',
-            ttl: config.get<number>('THROTTLER_TTL'),
-            limit: config.get<number>('THROTTLER_LIMIT'),
+            ttl: config.getOrThrow<number>('THROTTLER_TTL'),
+            limit: config.getOrThrow<number>('THROTTLER_LIMIT'),
           },
           {
             name: 'auth',
-            ttl: config.get<number>('THROTTLER_TTL'),
-            limit: config.get<number>('THROTTLER_AUTH_LIMIT'),
+            ttl: config.getOrThrow<number>('THROTTLER_TTL'),
+            limit: config.getOrThrow<number>('THROTTLER_AUTH_LIMIT'),
           },
         ],
       }),

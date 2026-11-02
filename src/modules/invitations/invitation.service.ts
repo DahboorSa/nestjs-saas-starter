@@ -5,6 +5,7 @@ import {
   Logger,
   RequestTimeoutException,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InvitationEntity } from './entities/invitation.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -71,9 +72,9 @@ export class InvitationService {
     orgId: string,
     resourceId: string,
     organization: OrganizationEntity,
-    webhookPayload: Record<string, any>,
+    webhookPayload: Record<string, unknown>,
     user?: UserEntity,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ) {
     this.auditLogService
       .create({
@@ -95,7 +96,9 @@ export class InvitationService {
       });
   }
 
-  async getPendingInvitationByEmail(email: string): Promise<InvitationEntity> {
+  async getPendingInvitationByEmail(
+    email: string,
+  ): Promise<InvitationEntity | null> {
     return await this.invitationRepository.findOne({
       where: { email, status: InvitationStatus.PENDING },
     });
@@ -128,6 +131,7 @@ export class InvitationService {
   ) {
     const { orgId, userId } = user;
     const userInfo = await this.userService.getById(userId, orgId, true);
+    if (!userInfo) throw new NotFoundException('User not found');
     const { organization } = userInfo;
 
     const results = await Promise.all(
@@ -165,7 +169,8 @@ export class InvitationService {
 
       const token = randomBytes(32).toString('hex');
       const expiresAt = new Date(
-        Date.now() + this.configService.get<number>('INVITE_TOKEN_TTL') * 1000,
+        Date.now() +
+          this.configService.getOrThrow<number>('INVITE_TOKEN_TTL') * 1000,
       );
 
       const invitation = await this.create({
@@ -217,7 +222,7 @@ export class InvitationService {
     body: AcceptInvitationDto,
   ) {
     const inviteKey = `invite:${hashToken(token)}`;
-    let inviteToken = await this.cacheService.get(inviteKey);
+    const cachedInvite = await this.cacheService.get(inviteKey);
     let tokenData: {
       invitationId: number;
       email: string;
@@ -228,28 +233,28 @@ export class InvitationService {
       organization?: OrganizationEntity;
     };
 
-    if (!inviteToken) {
-      inviteToken = await this.invitationRepository.findOne({
+    if (!cachedInvite) {
+      const invitation = await this.invitationRepository.findOne({
         where: {
           token,
         },
         relations: ['organization'],
       });
-      if (!inviteToken)
+      if (!invitation)
         throw new UnauthorizedException('Invitation expired or invalid');
 
       tokenData = {
-        invitationId: inviteToken.id,
-        email: inviteToken.email,
-        orgId: inviteToken.organization.id,
-        role: inviteToken.role,
-        status: inviteToken.status,
-        expiresAt: inviteToken.expiresAt,
-        organization: inviteToken.organization,
+        invitationId: invitation.id,
+        email: invitation.email,
+        orgId: invitation.organization.id,
+        role: invitation.role,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        organization: invitation.organization,
       };
     } else {
       try {
-        tokenData = JSON.parse(inviteToken);
+        tokenData = JSON.parse(cachedInvite);
       } catch {
         throw new UnauthorizedException('Invitation expired or invalid');
       }
@@ -315,6 +320,7 @@ export class InvitationService {
       status: InvitationStatus.ACCEPTED,
     });
 
+    if (!updatedInvitation) throw new NotFoundException('Invitation not found');
     await this.invitationRepository.save(updatedInvitation);
     await this.cacheService.delete(inviteKey);
 

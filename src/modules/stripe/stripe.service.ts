@@ -7,7 +7,9 @@ export class StripeService {
   private readonly stripe: ReturnType<typeof Stripe>;
 
   constructor(private readonly configService: ConfigService) {
-    this.stripe = Stripe(this.configService.get<string>('STRIPE_SECRET_KEY'));
+    this.stripe = Stripe(
+      this.configService.getOrThrow<string>('STRIPE_SECRET_KEY'),
+    );
   }
 
   retrieveCustomer(customerId: string) {
@@ -77,7 +79,7 @@ export class StripeService {
     return this.stripe.webhooks.constructEvent(
       payload,
       signature,
-      this.configService.get<string>('STRIPE_WEBHOOK_SECRET'),
+      this.configService.getOrThrow<string>('STRIPE_WEBHOOK_SECRET'),
     );
   }
   listPaymentMethods(customerId: string) {

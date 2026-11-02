@@ -39,7 +39,7 @@ export class OrganizationEntity {
   @Column({ default: true, name: 'is_active' })
   isActive: boolean; // owner can deactivate / admin can suspend
   @Column({ type: 'timestamp', nullable: true, name: 'trial_ends_at' })
-  trialEndsAt: Date;
+  trialEndsAt: Date | null;
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
   @UpdateDateColumn({ name: 'updated_at' })

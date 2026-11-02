@@ -25,11 +25,11 @@ export class ApiKeyEntity {
   @Column({ type: 'jsonb' })
   scopes: string[];
   @Column({ type: 'timestamp', nullable: true, name: 'last_used_at' })
-  lastUsedAt: Date;
+  lastUsedAt: Date | null;
   @Column({ default: true, name: 'is_active' })
   isActive: boolean;
-  @Column({ nullable: true, name: 'expires_at' })
-  expiresAt: Date;
+  @Column({ type: 'timestamp', nullable: true, name: 'expires_at' })
+  expiresAt: Date | null;
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

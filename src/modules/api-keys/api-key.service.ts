@@ -31,7 +31,7 @@ export interface ApiKeyResponse extends Partial<ApiKeyEntity> {
   scopes: string[];
   isActive: boolean;
   createdAt: Date;
-  lastUsedAt: Date;
+  lastUsedAt: Date | null;
   orgId: string;
 }
 
@@ -54,7 +54,7 @@ export class ApiKeyService {
     webhookEvent: WebhookEvent,
     orgId: string,
     apiKey: ApiKeyEntity,
-    webhookPayload: Record<string, any>,
+    webhookPayload: Record<string, unknown>,
     organization?: ApiKeyEntity['organization'],
   ) {
     this.auditLogService
@@ -97,7 +97,7 @@ export class ApiKeyService {
     return createHash('sha256').update(key).digest('hex');
   }
 
-  async getByHash(hash: string): Promise<Partial<ApiKeyResponse>> {
+  async getByHash(hash: string): Promise<Partial<ApiKeyResponse> | null> {
     const key = await this.apiKeyRepository.findOne({
       where: { keyHash: hash },
       relations: ['organization'],

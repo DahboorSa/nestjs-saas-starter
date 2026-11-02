@@ -63,7 +63,7 @@ export class UserService {
     return users.map((user) => this.mapUserData(user));
   }
 
-  async create(user: Partial<UserEntity>): Promise<UserEntity | null> {
+  async create(user: Partial<UserEntity>): Promise<UserEntity> {
     const userInfo = this.userRepository.create({ ...user });
     return this.userRepository.save(userInfo);
   }
@@ -96,7 +96,7 @@ export class UserService {
     });
   }
 
-  async getDetails(user: UserInfoDto): Promise<Partial<UserEntity>> {
+  async getDetails(user: UserInfoDto): Promise<Partial<UserEntity> | null> {
     const { userId: id, orgId: organizationId } = user;
     const userInfo = await this.userRepository.findOne({
       where: { id, organization: { id: organizationId } },
@@ -132,7 +132,7 @@ export class UserService {
     action: AuditAction,
     webhookEvent: WebhookEvent,
     userInfo: UserEntity,
-    payload: any,
+    payload: Record<string, unknown>,
   ) {
     const { id: userId } = userInfo;
     this.auditLogService
@@ -194,6 +194,7 @@ export class UserService {
     body: Partial<UserEntity>,
   ): Promise<Partial<UserEntity>> {
     const { id: userId, role } = body;
+    if (!userId) throw new BadRequestException('User id is required');
     if (role === UserRole.OWNER)
       throw new BadRequestException('Cannot assign owner role');
     const { orgId } = currentUser;

@@ -11,7 +11,7 @@ const mockOrg = {
   id: 'org-1',
   name: 'Acme Corp',
   paymentStatus: 'active',
-  trialEndsAt: null,
+  trialEndsAt: null as Date | null,
   plan: {
     name: 'Pro',
     limits: { maxMembers: 25, maxApiKeys: 10, maxWebhooks: 100 },

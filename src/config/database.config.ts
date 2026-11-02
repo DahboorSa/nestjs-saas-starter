@@ -1,11 +1,11 @@
 import { registerAs } from '@nestjs/config';
 
 export class DatabaseConfig {
-  host: string = process.env.DB_HOST;
-  port: number = +process.env.DB_PORT;
-  username: string = process.env.DB_USER;
-  password: string = process.env.DB_PASSWORD;
-  database: string = process.env.DB_NAME;
+  host?: string = process.env.DB_HOST;
+  port: number = Number(process.env.DB_PORT);
+  username?: string = process.env.DB_USER;
+  password?: string = process.env.DB_PASSWORD;
+  database?: string = process.env.DB_NAME;
   sync: boolean = process.env.DB_SYNC === 'true';
   logging: boolean = process.env.DB_LOGGING === 'true';
   ssl: boolean = process.env.DB_SSL === 'true';

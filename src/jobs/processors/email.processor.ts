@@ -6,8 +6,9 @@ import { MailtrapTransport } from 'mailtrap';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { EmailJobData } from '../job-data.types';
 
-type EmailTemplate = (data: any) => { subject: string; text: string };
+type EmailTemplate = (data: EmailJobData) => { subject: string; text: string };
 
 const buildTemplates = (baseUrl: string): Record<string, EmailTemplate> => ({
   'welcome.email': ({ token }) => ({
@@ -50,16 +51,19 @@ export class EmailProcessor extends WorkerHost {
 
   constructor(private readonly configService: ConfigService) {
     super();
-    this.templates = buildTemplates(this.configService.get<string>('URL_PATH'));
+    this.templates = buildTemplates(
+      this.configService.getOrThrow<string>('URL_PATH'),
+    );
     this.isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
 
     if (this.isProduction) {
       this.sesClient = new SESClient({
-        region: this.configService.get<string>('AWS_REGION'),
+        region: this.configService.getOrThrow<string>('AWS_REGION'),
         credentials: {
-          accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID'),
-          secretAccessKey: this.configService.get<string>(
+          accessKeyId:
+            this.configService.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
+          secretAccessKey: this.configService.getOrThrow<string>(
             'AWS_SECRET_ACCESS_KEY',
           ),
         },
@@ -68,9 +72,9 @@ export class EmailProcessor extends WorkerHost {
     } else {
       this.mailtrapTransport = Nodemailer.createTransport(
         MailtrapTransport({
-          token: this.configService.get<string>('MAILTRAP_API_KEY'),
+          token: this.configService.getOrThrow<string>('MAILTRAP_API_KEY'),
           sandbox: true,
-          testInboxId: +this.configService.get<number>(
+          testInboxId: +this.configService.getOrThrow<number>(
             'MAILTRAP_TEST_INBOX_ID',
           ),
         }),
@@ -79,7 +83,7 @@ export class EmailProcessor extends WorkerHost {
     }
   }
 
-  async process(job: Job<any>) {
+  async process(job: Job<EmailJobData>) {
     try {
       const { data } = job;
       const { email, userId } = data;
@@ -102,14 +106,16 @@ export class EmailProcessor extends WorkerHost {
               Body: { Text: { Charset: 'UTF-8', Data: text } },
               Subject: { Charset: 'UTF-8', Data: subject },
             },
-            Source: this.configService.get<string>('SES_FROM_EMAIL'),
+            Source: this.configService.getOrThrow<string>('SES_FROM_EMAIL'),
           }),
         );
       } else {
         await this.mailtrapTransport.sendMail({
           from: {
-            address: this.configService.get<string>('MAILTRAP_FROM_EMAIL'),
-            name: this.configService.get<string>('MAILTRAP_FROM_NAME'),
+            address: this.configService.getOrThrow<string>(
+              'MAILTRAP_FROM_EMAIL',
+            ),
+            name: this.configService.getOrThrow<string>('MAILTRAP_FROM_NAME'),
           },
           to: [email],
           subject,

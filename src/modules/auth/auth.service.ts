@@ -26,6 +26,7 @@ import {
   AuditAction,
   AuditResourceType,
   PaymentStatus,
+  Plan,
   UserRole,
 } from '../../enums';
 import { OrganizationEntity } from '../organizations/entities/organization.entity';
@@ -126,7 +127,7 @@ export class AuthService {
 
     // Validate the plan before checking the email so a bad plan fails the same
     // way for new and existing emails.
-    const plan = await this.planService.getByName(body.plan);
+    const plan = await this.planService.getByName(body.plan ?? Plan.FREE);
     if (!plan) {
       throw new InternalServerErrorException('Plans not found');
     }
@@ -519,8 +520,8 @@ export class AuthService {
   async logout(auditContext: AuditContextDto, user: UserInfoDto) {
     const { userId, token, orgId } = user;
     await this.cacheService.delete(`auth:refresh:${userId}`);
-    const ttl = user.expiresIn - Math.floor(Date.now() / 1000);
-    if (ttl > 0)
+    const ttl = (user.expiresIn ?? 0) - Math.floor(Date.now() / 1000);
+    if (ttl > 0 && token)
       await this.cacheService.set(
         `auth:blacklist:${hashToken(token)}`,
         '1',

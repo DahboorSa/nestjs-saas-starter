@@ -1,8 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { StripeService } from '../stripe/stripe.service';
 import { AuditContextDto } from '../../common/dto/audit-context.dto';
 import { OrganizationService } from '../organizations/organization.service';
 import { PaymentStatus } from '../../enums';
+import {
+  PaymentMethodSummary,
+  SubscriptionResponse,
+  SubscriptionWithLegacyPeriod,
+} from './billing.types';
+import { StripePaymentMethod } from '../stripe/stripe.types';
 
 @Injectable()
 export class BillingService {
@@ -11,10 +21,15 @@ export class BillingService {
     private readonly stripeService: StripeService,
   ) {}
 
+  private async getOrganization(organizationId: string) {
+    const organization = await this.organizationService.getById(organizationId);
+    if (!organization) throw new NotFoundException('Organization not found');
+    return organization;
+  }
+
   async createSubscription(body: { organizationId: string; email: string }) {
     const { organizationId, email } = body;
-    const organizationDetails =
-      await this.organizationService.getById(organizationId);
+    const organizationDetails = await this.getOrganization(organizationId);
     let customerId = organizationDetails.stripeCustomerId;
     if (!customerId) {
       const customer = await this.stripeService.createCustomer(
@@ -29,6 +44,11 @@ export class BillingService {
     }
 
     const { stripePriceId } = organizationDetails.plan;
+    if (!stripePriceId) {
+      throw new InternalServerErrorException(
+        'Plan is not configured with a Stripe price',
+      );
+    }
     const { trialEndsAt } = organizationDetails;
     const isInTrial = trialEndsAt && trialEndsAt > new Date();
     const subscription = await this.stripeService.createSubscription(
@@ -48,10 +68,11 @@ export class BillingService {
     };
   }
 
-  async getSubscription(auditContext: AuditContextDto) {
+  async getSubscription(
+    auditContext: AuditContextDto,
+  ): Promise<SubscriptionResponse> {
     const { organizationId } = auditContext;
-    const organizationDetails =
-      await this.organizationService.getById(organizationId);
+    const organizationDetails = await this.getOrganization(organizationId);
     const { stripeSubscriptionId, stripeCustomerId, paymentStatus } =
       organizationDetails;
 
@@ -68,7 +89,7 @@ export class BillingService {
     const sub = (await this.stripeService.retrieveSubscription(
       stripeSubscriptionId,
       ['default_payment_method'],
-    )) as any;
+    )) as SubscriptionWithLegacyPeriod;
 
     const defaultPaymentMethodId =
       typeof sub.default_payment_method === 'string'
@@ -94,7 +115,7 @@ export class BillingService {
     };
   }
 
-  private formatPaymentMethod(pm: any) {
+  private formatPaymentMethod(pm: StripePaymentMethod): PaymentMethodSummary {
     return {
       id: pm.id,
       brand: pm.card?.brand ?? null,
@@ -106,8 +127,7 @@ export class BillingService {
 
   async getPaymentMethods(auditContext: AuditContextDto) {
     const { organizationId } = auditContext;
-    const organizationDetails =
-      await this.organizationService.getById(organizationId);
+    const organizationDetails = await this.getOrganization(organizationId);
     const { stripeCustomerId } = organizationDetails;
     if (!stripeCustomerId) {
       return null;
@@ -117,10 +137,11 @@ export class BillingService {
     return paymentMethods;
   }
 
-  async getInvoices(auditContext: AuditContextDto) {
+  async getInvoices(
+    auditContext: AuditContextDto,
+  ): Promise<Awaited<ReturnType<StripeService['listOfInvoices']>> | never[]> {
     const { organizationId } = auditContext;
-    const organizationDetails =
-      await this.organizationService.getById(organizationId);
+    const organizationDetails = await this.getOrganization(organizationId);
     const { stripeCustomerId } = organizationDetails;
     if (!stripeCustomerId) {
       return [];

@@ -6,10 +6,12 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OrganizationEntity } from './entities/organization.entity';
 import { FindOptionsWhere, QueryFailedError, Repository } from 'typeorm';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import {
   CreateOrganizationDto,
@@ -44,11 +46,15 @@ export class OrganizationService {
     private readonly dispatcher: WebhookDispatcherService,
   ) {}
 
-  async getAll(where?: any): Promise<OrganizationEntity[]> {
+  async getAll(
+    where?: FindOptionsWhere<OrganizationEntity>,
+  ): Promise<OrganizationEntity[]> {
     return this.organizationRepository.find({ where });
   }
 
-  async getOneBy(where: any): Promise<OrganizationEntity | null> {
+  async getOneBy(
+    where: FindOptionsWhere<OrganizationEntity>,
+  ): Promise<OrganizationEntity | null> {
     return this.organizationRepository.findOne({ where });
   }
 
@@ -76,7 +82,7 @@ export class OrganizationService {
     return this.organizationRepository.save(organization);
   }
 
-  async getDetails(user: UserInfoDto): Promise<OrganizationEntity> {
+  async getDetails(user: UserInfoDto): Promise<OrganizationEntity | null> {
     return await this.organizationRepository.findOne({
       where: { id: user.orgId, isActive: true },
       relations: ['plan'],
@@ -87,7 +93,9 @@ export class OrganizationService {
     user: UserInfoDto,
   ): Promise<{ plan: PlanEntity; count: number }> {
     const { orgId } = user;
-    const { plan } = await this.getDetails(user);
+    const details = await this.getDetails(user);
+    if (!details) throw new NotFoundException('Organization not found');
+    const { plan } = details;
     const count = await this.userService.getTotalActiveUsers(orgId);
     return { plan, count };
   }
@@ -167,13 +175,16 @@ export class OrganizationService {
   }
 
   private isUniqueViolation(error: unknown): boolean {
-    return error instanceof QueryFailedError && (error as any).code === '23505';
+    return (
+      error instanceof QueryFailedError &&
+      (error as QueryFailedError & { code?: string }).code === '23505'
+    );
   }
 
   // Single bulk UPDATE; returns the number of rows changed.
   async updateMany(
     where: FindOptionsWhere<OrganizationEntity>,
-    fields: Partial<OrganizationEntity>,
+    fields: QueryDeepPartialEntity<OrganizationEntity>,
   ): Promise<number> {
     const result = await this.organizationRepository.update(where, fields);
     return result.affected ?? 0;
@@ -181,7 +192,7 @@ export class OrganizationService {
 
   async updateFields(
     id: string,
-    fields: Partial<OrganizationEntity>,
+    fields: QueryDeepPartialEntity<OrganizationEntity>,
   ): Promise<void> {
     await this.organizationRepository.update(id, fields);
   }
@@ -207,6 +218,11 @@ export class OrganizationService {
 
     const newPlan = await this.planService.getByName(body.plan);
     if (!newPlan) throw new NotFoundException('Plan not found');
+    if (!newPlan.stripePriceId) {
+      throw new InternalServerErrorException(
+        'Plan is not configured with a Stripe price',
+      );
+    }
     if (organization.plan?.id === newPlan.id) {
       throw new BadRequestException('Plan is already active');
     }

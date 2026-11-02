@@ -37,13 +37,13 @@ const mockStripeService = {
     status: 'active',
     current_period_end: Math.floor(Date.now() / 1000) + 86400,
     cancel_at_period_end: false,
-    default_payment_method: null,
+    default_payment_method: null as string | null,
   }),
-  listPaymentMethods: async () => ({ data: [] }),
-  listOfInvoices: async () => ({ data: [] }),
+  listPaymentMethods: async () => ({ data: [] as unknown[] }),
+  listOfInvoices: async () => ({ data: [] as unknown[] }),
   cancelSubscription: async () => ({}),
   retrieveCustomer: async () => ({ id: 'cus_test' }),
-  constructWebhookEvent: () => null,
+  constructWebhookEvent: (): null => null,
 };
 
 export async function closeTestApp(app: INestApplication): Promise<void> {
@@ -92,7 +92,7 @@ async function seedPlans(app: INestApplication): Promise<void> {
     {
       name: 'Free',
       price: 0,
-      stripePriceId: null,
+      stripePriceId: 'price_test_free',
       isDefault: true,
       limits: {
         apiCallsPerMonth: 100,
@@ -112,7 +112,7 @@ async function seedPlans(app: INestApplication): Promise<void> {
     {
       name: 'Pro',
       price: 19,
-      stripePriceId: null,
+      stripePriceId: 'price_test_pro',
       trialDays: 14,
       limits: {
         apiCallsPerMonth: 50000,
@@ -132,7 +132,7 @@ async function seedPlans(app: INestApplication): Promise<void> {
     {
       name: 'Enterprise',
       price: 99,
-      stripePriceId: null,
+      stripePriceId: 'price_test_enterprise',
       trialDays: 30,
       limits: {
         apiCallsPerMonth: -1,

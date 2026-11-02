@@ -3,14 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { StripeService } from './stripe.service';
 
+const stripeConfig: Record<string, string> = {
+  STRIPE_SECRET_KEY: 'sk_test_mock',
+  STRIPE_WEBHOOK_SECRET: 'whsec_mock',
+};
 const mockConfigService = {
-  get: jest.fn((key: string) => {
-    const config = {
-      STRIPE_SECRET_KEY: 'sk_test_mock',
-      STRIPE_WEBHOOK_SECRET: 'whsec_mock',
-    };
-    return config[key];
-  }),
+  get: jest.fn((key: string) => stripeConfig[key]),
+  getOrThrow: jest.fn((key: string) => stripeConfig[key]),
 };
 
 jest.mock('stripe', () => {

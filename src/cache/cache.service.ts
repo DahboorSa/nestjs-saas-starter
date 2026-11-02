@@ -11,12 +11,13 @@ export class CacheService {
     });
   }
 
-  async set(key: string, value: any, ttl?: number) {
-    if (ttl) return this.redis.set(key, value, 'EX', ttl);
-    return this.redis.set(key, value);
+  async set(key: string, value: string | number | boolean, ttl?: number) {
+    const stored = typeof value === 'boolean' ? String(value) : value;
+    if (ttl) return this.redis.set(key, stored, 'EX', ttl);
+    return this.redis.set(key, stored);
   }
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<string | null> {
     return this.redis.get(key);
   }
 

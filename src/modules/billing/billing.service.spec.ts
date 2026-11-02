@@ -7,8 +7,8 @@ import { PaymentStatus } from '../../enums';
 const mockOrg = {
   id: 'org-1',
   name: 'Test Org',
-  stripeCustomerId: null,
-  stripeSubscriptionId: null,
+  stripeCustomerId: null as string | null,
+  stripeSubscriptionId: null as string | null,
   paymentStatus: PaymentStatus.FREE,
   plan: { stripePriceId: 'price_123' },
 };

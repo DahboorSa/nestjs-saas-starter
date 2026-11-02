@@ -10,7 +10,7 @@ export class PlanService {
     private readonly planRepository: Repository<PlanEntity>,
   ) {}
 
-  async getDefault(): Promise<PlanEntity> {
+  async getDefault(): Promise<PlanEntity | null> {
     return this.planRepository.findOne({ where: { isDefault: true } });
   }
 

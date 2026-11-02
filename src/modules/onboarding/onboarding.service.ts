@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -58,6 +59,8 @@ export class OnboardingService {
       this.usageService.getStats(orgId),
       this.auditLogService.findByOrganization(orgId),
     ]);
+
+    if (!org) throw new NotFoundException('Organization not found');
 
     const plan = org.plan;
     const memberCount = org.users.filter((u) => u.isActive).length;

@@ -39,12 +39,14 @@ const mockUserService = {
 
 const mockOrganizationService = { getDetails: jest.fn() };
 const mockCacheService = { get: jest.fn(), set: jest.fn(), delete: jest.fn() };
+const configValue = (key: string) => {
+  if (key === 'INVITE_TOKEN_TTL') return 172800;
+  if (key === 'jwt.jwtRefreshRedisExpiry') return 604800;
+  return null;
+};
 const mockConfigService = {
-  get: jest.fn().mockImplementation((key: string) => {
-    if (key === 'INVITE_TOKEN_TTL') return 172800;
-    if (key === 'jwt.jwtRefreshRedisExpiry') return 604800;
-    return null;
-  }),
+  get: jest.fn().mockImplementation(configValue),
+  getOrThrow: jest.fn().mockImplementation(configValue),
 };
 const mockEmailQueue = { add: jest.fn().mockResolvedValue(undefined) };
 const mockJwtUtilityService = {

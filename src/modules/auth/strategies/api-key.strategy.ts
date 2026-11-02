@@ -23,7 +23,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
     const token = authHeader?.split(' ')?.[1] as string;
     if (
       !token ||
-      !token.startsWith(this.configService.get<string>('API_KEY_PREFIX'))
+      !token.startsWith(this.configService.getOrThrow<string>('API_KEY_PREFIX'))
     ) {
       return null;
     }
@@ -49,7 +49,8 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
       throw new UnauthorizedException('API key has been deactivated');
     if (apiKey.expiresAt && new Date(apiKey.expiresAt) < new Date())
       throw new UnauthorizedException('API key has expired');
-    this.apiKeyService.updateLastUsed(apiKey.id).catch(() => {});
+    if (apiKey.id !== undefined)
+      this.apiKeyService.updateLastUsed(apiKey.id).catch(() => {});
     return {
       orgId: apiKey?.orgId,
       scopes: apiKey?.scopes,
