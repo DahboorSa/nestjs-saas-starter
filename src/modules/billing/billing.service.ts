@@ -75,12 +75,16 @@ export class BillingService {
         ? sub.default_payment_method
         : (sub.default_payment_method?.id ?? null);
 
+    // current_period_end moved from the subscription to its items
+    const currentPeriodEnd =
+      sub.items?.data?.[0]?.current_period_end ?? sub.current_period_end;
+
     return {
       paymentStatus,
       subscription: {
         id: sub.id,
         status: sub.status,
-        currentPeriodEnd: new Date(sub.current_period_end * 1000),
+        currentPeriodEnd: new Date(currentPeriodEnd * 1000),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
       },
       paymentMethods: paymentMethods.map((pm) => ({
