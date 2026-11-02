@@ -13,13 +13,13 @@ import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
 import { AuditLogService } from '../audit-logs/audit-log.service';
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UserRole } from '../../enums';
+import { AuditAction, UserRole } from '../../enums';
 import * as argon from 'argon2';
+import { hashToken } from '../../common/utils/hash-token.util';
 
 jest.mock('argon2');
 
@@ -104,17 +104,124 @@ describe('AuthService', () => {
       mockOrganizationService.getBySlug.mockResolvedValue(null);
     });
 
-    it('should throw ConflictException if user already exists and is active', async () => {
-      mockUserService.getByEmail.mockResolvedValue({ isActive: true });
-      mockPlanService.getByName.mockResolvedValue({
-        id: 1,
-        name: 'Free',
-        trialDays: 0,
+    describe('email already registered', () => {
+      const freePlan = { id: 1, name: 'Free', trialDays: 0 };
+
+      beforeEach(() => {
+        mockPlanService.getByName.mockResolvedValue(freePlan);
+        (argon.hash as jest.Mock).mockResolvedValue('hashed-password');
+        mockEmailQueueService.add.mockResolvedValue(undefined);
       });
 
-      await expect(
-        service.register(auditContext as any, registerDto as any),
-      ).rejects.toThrow(ConflictException);
+      it('should respond like a new registration, create nothing and notify the owner', async () => {
+        mockUserService.getByEmail.mockResolvedValue({
+          id: 'user-1',
+          isActive: true,
+        });
+
+        const result = await service.register(
+          auditContext as any,
+          registerDto as any,
+        );
+
+        expect(Object.keys(result)).toEqual(['message']);
+        expect(mockDataSource.transaction).not.toHaveBeenCalled();
+        expect(mockSubscriptionQueueService.add).not.toHaveBeenCalled();
+        expect(mockEmailQueueService.add).toHaveBeenCalledWith(
+          'account-exists.email',
+          { email: registerDto.email, userId: 'user-1' },
+        );
+      });
+
+      it('should return the identical response for existing and new emails', async () => {
+        mockUserService.getByEmail.mockResolvedValue({
+          id: 'user-1',
+          isActive: true,
+        });
+        const existing = await service.register(
+          auditContext as any,
+          registerDto as any,
+        );
+
+        mockUserService.getByEmail.mockResolvedValue(null);
+        mockCacheService.set.mockResolvedValue(undefined);
+        mockSubscriptionQueueService.add.mockResolvedValue(undefined);
+        mockDataSource.transaction.mockImplementation(async (cb) =>
+          cb({
+            getRepository: jest.fn().mockReturnValue({
+              save: jest
+                .fn()
+                .mockResolvedValueOnce({ id: 'org-1' })
+                .mockResolvedValueOnce({ id: 'user-2' }),
+            }),
+          }),
+        );
+        const created = await service.register(
+          auditContext as any,
+          registerDto as any,
+        );
+
+        expect(created).toEqual(existing);
+      });
+
+      it('should still hash the password so timing stays close to a new signup', async () => {
+        mockUserService.getByEmail.mockResolvedValue({
+          id: 'user-1',
+          isActive: true,
+        });
+
+        await service.register(auditContext as any, registerDto as any);
+
+        expect(argon.hash).toHaveBeenCalledWith(registerDto.password);
+      });
+
+      it('should respond the same but send no email for a deactivated account', async () => {
+        mockUserService.getByEmail.mockResolvedValue({
+          id: 'user-1',
+          isActive: false,
+        });
+
+        const result = await service.register(
+          auditContext as any,
+          registerDto as any,
+        );
+
+        expect(Object.keys(result)).toEqual(['message']);
+        expect(mockDataSource.transaction).not.toHaveBeenCalled();
+        expect(mockEmailQueueService.add).not.toHaveBeenCalled();
+      });
+
+      it('should look the email up lowercased, as it is stored', async () => {
+        mockUserService.getByEmail.mockResolvedValue({
+          id: 'user-1',
+          isActive: true,
+        });
+
+        await service.register(
+          auditContext as any,
+          {
+            ...registerDto,
+            email: 'Test@Example.COM',
+          } as any,
+        );
+
+        expect(mockUserService.getByEmail).toHaveBeenCalledWith(
+          'test@example.com',
+        );
+      });
+
+      it('should fail the same way for a bad plan whether or not the email exists', async () => {
+        mockPlanService.getByName.mockResolvedValue(null);
+        mockUserService.getByEmail.mockResolvedValue({
+          id: 'user-1',
+          isActive: true,
+        });
+
+        await expect(
+          service.register(auditContext as any, registerDto as any),
+        ).rejects.toThrow(InternalServerErrorException);
+        expect(mockUserService.getByEmail).not.toHaveBeenCalled();
+      });
     });
 
     it('should throw InternalServerErrorException if plan not found', async () => {
@@ -158,11 +265,7 @@ describe('AuthService', () => {
         registerDto as any,
       );
 
-      expect(result).toEqual({
-        message: 'Registration successful. Please verify your email.',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
+      expect(result).toEqual({ message: expect.any(String) });
       expect(mockEmailQueueService.add).toHaveBeenCalledWith('welcome.email', {
         token: expect.any(String),
         email: registerDto.email,
@@ -211,11 +314,7 @@ describe('AuthService', () => {
         registerDto as any,
       );
 
-      expect(result).toEqual({
-        message: 'Registration successful. Please verify your email.',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
+      expect(result).toEqual({ message: expect.any(String) });
     });
   });
 
@@ -249,7 +348,7 @@ describe('AuthService', () => {
         isVerified: true,
       });
       expect(mockCacheService.delete).toHaveBeenCalledWith(
-        'verify:email:valid-token',
+        `verify:email:${hashToken('valid-token')}`,
       );
     });
   });
@@ -272,6 +371,44 @@ describe('AuthService', () => {
       await expect(
         service.login(auditContext as any, loginDto),
       ).rejects.toThrow(UnauthorizedException);
+
+      expect(mockAuditLogService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AuditAction.AUTH_LOGIN_FAILED,
+          resourceId: 'unknown',
+          metadata: { reason: 'unknown_user' },
+          user: undefined,
+          organization: undefined,
+        }),
+      );
+    });
+
+    it('should spend an argon2 verification on an unknown email so timing matches a wrong password', async () => {
+      mockUserService.getByEmail.mockResolvedValue(null);
+      (argon.hash as jest.Mock).mockResolvedValue('dummy-hash');
+      (argon.verify as jest.Mock).mockClear();
+
+      await expect(
+        service.login(auditContext as any, loginDto),
+      ).rejects.toThrow(UnauthorizedException);
+
+      // The dummy hash is cached module-wide, so only its use is asserted.
+      expect(argon.verify).toHaveBeenCalledTimes(1);
+      expect((argon.verify as jest.Mock).mock.calls[0][1]).toBe(
+        loginDto.password,
+      );
+    });
+
+    it('should never store the submitted email in the failure audit', async () => {
+      mockUserService.getByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.login(auditContext as any, loginDto),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(
+        JSON.stringify(mockAuditLogService.create.mock.calls),
+      ).not.toContain(loginDto.email);
     });
 
     it('should throw UnauthorizedException if password is invalid', async () => {
@@ -281,6 +418,16 @@ describe('AuthService', () => {
       await expect(
         service.login(auditContext as any, loginDto),
       ).rejects.toThrow(UnauthorizedException);
+
+      expect(mockAuditLogService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AuditAction.AUTH_LOGIN_FAILED,
+          resourceId: 'user-1',
+          metadata: { reason: 'invalid_password' },
+          user: mockUser,
+          organization: mockUser.organization,
+        }),
+      );
     });
 
     it('should throw ForbiddenException if email is not verified', async () => {
@@ -293,6 +440,13 @@ describe('AuthService', () => {
       await expect(
         service.login(auditContext as any, loginDto),
       ).rejects.toThrow(ForbiddenException);
+
+      expect(mockAuditLogService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AuditAction.AUTH_LOGIN_FAILED,
+          metadata: { reason: 'email_not_verified' },
+        }),
+      );
     });
 
     it('should throw ForbiddenException if account is deactivated', async () => {
@@ -305,6 +459,23 @@ describe('AuthService', () => {
       await expect(
         service.login(auditContext as any, loginDto),
       ).rejects.toThrow(ForbiddenException);
+
+      expect(mockAuditLogService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AuditAction.AUTH_LOGIN_FAILED,
+          metadata: { reason: 'account_deactivated' },
+        }),
+      );
+    });
+
+    it('should still reject with 401 if the failure audit write fails', async () => {
+      mockUserService.getByEmail.mockResolvedValue(mockUser);
+      (argon.verify as jest.Mock).mockResolvedValue(false);
+      mockAuditLogService.create.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.login(auditContext as any, loginDto),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should return tokens on successful login', async () => {
@@ -319,6 +490,9 @@ describe('AuthService', () => {
         accessToken: 'access-token',
         refreshToken: 'refresh-token',
       });
+      expect(mockAuditLogService.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({ action: AuditAction.AUTH_LOGIN_FAILED }),
+      );
     });
   });
 
@@ -372,7 +546,7 @@ describe('AuthService', () => {
     it('should return new token pair on successful refresh', async () => {
       mockJwtUtilityService.verifyRefreshToken.mockReturnValue(tokenPayload);
       mockUserService.getById.mockResolvedValue(mockUser);
-      mockCacheService.get.mockResolvedValue('token');
+      mockCacheService.get.mockResolvedValue(hashToken('token'));
       mockCacheService.delete.mockResolvedValue(undefined);
       mockCacheService.set.mockResolvedValue(undefined);
 
@@ -512,6 +686,25 @@ describe('AuthService', () => {
         'forgot-password.email',
         expect.any(Object),
       );
+    });
+
+    it('should store only the hash of the reset token in Redis', async () => {
+      mockUserService.getByEmail.mockResolvedValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        organization: { id: 'org-1' },
+      });
+      mockCacheService.set.mockResolvedValue(undefined);
+      mockEmailQueueService.add.mockResolvedValue(undefined);
+
+      await service.forgotPassword(auditContext as any, {
+        email: 'test@example.com',
+      });
+
+      const { token } = mockEmailQueueService.add.mock.calls[0][1];
+      const [key] = mockCacheService.set.mock.calls[0];
+      expect(key).toBe(`reset:password:${hashToken(token)}`);
+      expect(key).not.toContain(token);
     });
   });
 
@@ -668,7 +861,7 @@ describe('AuthService', () => {
         'auth:refresh:user-1',
       );
       expect(mockCacheService.set).toHaveBeenCalledWith(
-        'auth:blacklist:jti-token',
+        `auth:blacklist:${hashToken('jti-token')}`,
         '1',
         expect.any(Number),
       );

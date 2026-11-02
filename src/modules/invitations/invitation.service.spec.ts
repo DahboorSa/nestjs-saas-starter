@@ -5,6 +5,7 @@ import { InvitationEntity } from './entities/invitation.entity';
 import { UserService } from '../users/user.service';
 import { OrganizationService } from '../organizations/organization.service';
 import { CacheService } from '../../cache/cache.service';
+import { hashToken } from '../../common/utils/hash-token.util';
 import { ConfigService } from '@nestjs/config';
 import { EmailQueueService } from '../../jobs/queues/email.queue';
 import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
@@ -191,6 +192,7 @@ describe('InvitationService', () => {
       expect(result.results[0]).toMatchObject({
         email: 'invite@example.com',
         success: false,
+        error: 'User already exists in this organization',
       });
     });
 
@@ -209,6 +211,7 @@ describe('InvitationService', () => {
       expect(result.results[0]).toMatchObject({
         email: 'invite@example.com',
         success: false,
+        error: expect.stringContaining('may already be registered'),
       });
     });
 
@@ -250,6 +253,21 @@ describe('InvitationService', () => {
         'invite.email',
         expect.any(Object),
       );
+    });
+
+    it('should store only the hash of the invite token in Redis', async () => {
+      mockUserService.getByEmail.mockResolvedValue(null);
+      mockInvitationRepository.findOne.mockResolvedValue(null);
+      mockInvitationRepository.create.mockReturnValue(mockInvitation);
+      mockInvitationRepository.save.mockResolvedValue(mockInvitation);
+      mockCacheService.set.mockResolvedValue(undefined);
+
+      await service.send(auditContext as any, userInfo, sendDto as any);
+
+      const { token } = mockEmailQueue.add.mock.calls[0][1];
+      const [key] = mockCacheService.set.mock.calls[0];
+      expect(key).toBe(`invite:${hashToken(token)}`);
+      expect(key).not.toContain(token);
     });
 
     it('should handle a batch with mixed success and failure', async () => {
@@ -403,6 +421,12 @@ describe('InvitationService', () => {
         refreshToken: 'refresh-token',
       });
       expect(mockUserService.create).toHaveBeenCalled();
+      expect(mockCacheService.get).toHaveBeenCalledWith(
+        `invite:${hashToken('token')}`,
+      );
+      expect(mockCacheService.delete).toHaveBeenCalledWith(
+        `invite:${hashToken('token')}`,
+      );
     });
 
     it('should reactivate existing inactive user on accept', async () => {

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserInfoDto } from '../../common/dto';
 import { CacheService } from '../../cache/cache.service';
+import { hashToken } from './hash-token.util';
 
 @Injectable()
 export class JwtUtilityService {
@@ -28,7 +29,7 @@ export class JwtUtilityService {
     const { accessToken, refreshToken } = this.generateToken(payload);
     await this.cacheService.set(
       `auth:refresh:${payload.userId}`,
-      refreshToken,
+      hashToken(refreshToken),
       this.configService.get<number>('jwt.jwtRefreshRedisExpiry'),
     );
     return { accessToken, refreshToken };

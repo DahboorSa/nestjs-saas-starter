@@ -15,6 +15,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserRole } from '../../enums';
+import { hashToken } from '../../common/utils/hash-token.util';
 
 const mockUserRepository = {
   find: jest.fn(),
@@ -444,15 +445,26 @@ describe('UserService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException if email is taken by another user', async () => {
+    it('should answer a taken email exactly like a free one, without sending anything', async () => {
+      mockUserRepository.findOneBy.mockResolvedValue(null);
+      mockCacheService.set.mockResolvedValue(undefined);
+      mockEmailQueue.add.mockResolvedValue(undefined);
+      const forFreeEmail = await service.changeEmail(currentUser, {
+        email: 'free@example.com',
+      });
+      jest.clearAllMocks();
+
       mockUserRepository.findOneBy.mockResolvedValue({
         id: 'other-user',
         email: 'new@example.com',
       });
+      const forTakenEmail = await service.changeEmail(currentUser, {
+        email: 'new@example.com',
+      });
 
-      await expect(
-        service.changeEmail(currentUser, { email: 'new@example.com' }),
-      ).rejects.toThrow(BadRequestException);
+      expect(forTakenEmail).toEqual(forFreeEmail);
+      expect(mockCacheService.set).not.toHaveBeenCalled();
+      expect(mockEmailQueue.add).not.toHaveBeenCalled();
     });
 
     it('should send email change request and return message', async () => {
@@ -469,6 +481,19 @@ describe('UserService', () => {
         'change-email.email',
         expect.any(Object),
       );
+    });
+
+    it('should store only the hash of the email-change token in Redis', async () => {
+      mockUserRepository.findOneBy.mockResolvedValue(null);
+      mockCacheService.set.mockResolvedValue(undefined);
+      mockEmailQueue.add.mockResolvedValue(undefined);
+
+      await service.changeEmail(currentUser, { email: 'new@example.com' });
+
+      const { token } = mockEmailQueue.add.mock.calls[0][1];
+      const [key] = mockCacheService.set.mock.calls[0];
+      expect(key).toBe(`change:email:${hashToken(token)}`);
+      expect(key).not.toContain(token);
     });
   });
 
@@ -534,7 +559,7 @@ describe('UserService', () => {
         refreshToken: 'refresh-token',
       });
       expect(mockCacheService.delete).toHaveBeenCalledWith(
-        'change:email:token',
+        `change:email:${hashToken('token')}`,
       );
     });
   });

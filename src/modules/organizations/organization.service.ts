@@ -1,4 +1,6 @@
+import { logError } from '../../common/utils/log-error.util';
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -7,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OrganizationEntity } from './entities/organization.entity';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, QueryFailedError, Repository } from 'typeorm';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import {
   CreateOrganizationDto,
@@ -104,11 +106,7 @@ export class OrganizationService {
     if (!organization) throw new NotFoundException('Organization not found');
     const oldName = organization.name;
 
-    this.organizationRepository.merge(organization, {
-      id: organization.id,
-      name: body.name,
-      slug,
-    });
+    const saved = await this.saveWithUniqueSlug(organization, body.name, slug);
 
     this.auditLogService
       .create({
@@ -118,8 +116,12 @@ export class OrganizationService {
         resourceId: organization.id,
         organization,
       })
-      .catch(() => {
-        this.logger.error('Error creating audit log for organization update');
+      .catch((error) => {
+        logError(
+          this.logger,
+          'Error creating audit log for organization update',
+          error,
+        );
       });
 
     this.dispatcher
@@ -128,9 +130,53 @@ export class OrganizationService {
         newName: body.name,
       })
       .catch((error) => {
-        this.logger.error('Error dispatching webhook', error);
+        logError(this.logger, 'Error dispatching webhook', error);
       });
-    return this.organizationRepository.save(organization);
+    return saved;
+  }
+
+  // The getBySlug() check in updateName() is check-then-act, so two concurrent
+  // renames can pick the same slug. The unique constraint is the real guard:
+  // on a violation, retry once with a random suffix, then give up with a 409.
+  private async saveWithUniqueSlug(
+    organization: OrganizationEntity,
+    name: string,
+    slug: string,
+  ): Promise<OrganizationEntity> {
+    const apply = (nextSlug: string) =>
+      this.organizationRepository.merge(organization, {
+        id: organization.id,
+        name,
+        slug: nextSlug,
+      });
+
+    apply(slug);
+    try {
+      return await this.organizationRepository.save(organization);
+    } catch (error) {
+      if (!this.isUniqueViolation(error)) throw error;
+    }
+
+    apply(this.utilityService.generateSlug(name, true));
+    try {
+      return await this.organizationRepository.save(organization);
+    } catch (error) {
+      if (!this.isUniqueViolation(error)) throw error;
+      throw new ConflictException('Organization slug already taken, retry');
+    }
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    return error instanceof QueryFailedError && (error as any).code === '23505';
+  }
+
+  // Single bulk UPDATE; returns the number of rows changed.
+  async updateMany(
+    where: FindOptionsWhere<OrganizationEntity>,
+    fields: Partial<OrganizationEntity>,
+  ): Promise<number> {
+    const result = await this.organizationRepository.update(where, fields);
+    return result.affected ?? 0;
   }
 
   async updateFields(

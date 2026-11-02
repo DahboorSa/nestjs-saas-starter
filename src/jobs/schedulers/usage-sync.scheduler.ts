@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { QueryFailedError } from 'typeorm';
@@ -54,8 +55,9 @@ export class UsageSyncScheduler {
           );
           await this.cacheService.delete(key);
         } else {
-          this.logger.error(
-            `Failed to sync usage for key="${key}" orgId="${orgId}" — code: ${(error as any).code} — ${(error as any).message}`,
+          logError(
+            this.logger,
+            `Failed to sync usage for key="${key}" orgId="${orgId}" (code ${(error as any).code})`,
             error,
           );
         }

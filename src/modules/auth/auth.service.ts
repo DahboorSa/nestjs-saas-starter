@@ -1,6 +1,7 @@
+import { logError } from '../../common/utils/log-error.util';
+import { hashToken } from '../../common/utils/hash-token.util';
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
@@ -38,6 +39,25 @@ import { ConfigService } from '@nestjs/config';
 import { UtilityService } from '../../common/utils/utility.service';
 import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
 import { AuditLogService } from '../audit-logs/audit-log.service';
+type LoginFailureReason =
+  | 'unknown_user'
+  | 'invalid_password'
+  | 'email_not_verified'
+  | 'account_deactivated';
+
+// Identical for new and already-registered emails, so the response never
+// reveals whether an account exists.
+const REGISTER_RESPONSE_MESSAGE =
+  'Registration received. Please check your email to continue.';
+
+// Verified against when a login email matches no account, so that path costs
+// the same argon2 time as a wrong password and response time does not reveal
+// which emails are registered. Hashed lazily with the same default parameters
+// as real password hashes.
+let dummyPasswordHash: Promise<string> | undefined;
+const getDummyPasswordHash = () =>
+  (dummyPasswordHash ??= argon.hash('timing-equalisation-only'));
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -71,12 +91,66 @@ export class AuthService {
         user,
         organization,
       })
-      .catch(() => {
-        this.logger.error('Error creating audit');
+      .catch((error) => {
+        logError(this.logger, 'Error creating audit', error);
+      });
+  }
+
+  // Records a rejected login. `user` is undefined when the email matched no
+  // account. The submitted email is deliberately NOT stored: it is attacker
+  // controlled and users often paste their password into that field.
+  private auditLoginFailed(
+    auditContext: AuditContextDto,
+    reason: LoginFailureReason,
+    user?: UserEntity,
+  ) {
+    this.auditLogService
+      .create({
+        ...auditContext,
+        action: AuditAction.AUTH_LOGIN_FAILED,
+        resourceType: AuditResourceType.USER,
+        resourceId: user?.id ?? 'unknown',
+        metadata: { reason },
+        user,
+        organization: user?.organization,
+      })
+      .catch((error) => {
+        logError(this.logger, 'Error creating login failure audit', error);
       });
   }
 
   async register(auditContext: AuditContextDto, body: RegisterDto) {
+    // Emails are stored lowercased; look them up the same way or a
+    // differently-cased duplicate slips past and fails on the unique index.
+    const email = body.email.toLowerCase();
+
+    // Validate the plan before checking the email so a bad plan fails the same
+    // way for new and existing emails.
+    const plan = await this.planService.getByName(body.plan);
+    if (!plan) {
+      throw new InternalServerErrorException('Plans not found');
+    }
+
+    const passwordHash = await argon.hash(body.password);
+
+    // Already registered (active or not): answer exactly as for a new account
+    // and, for an active account, tell its owner by email instead.
+    const existingUser = await this.userService.getByEmail(email);
+    if (existingUser) {
+      if (existingUser.isActive) {
+        await this.emailQueue
+          .add('account-exists.email', { email, userId: existingUser.id })
+          .catch((error) => {
+            logError(
+              this.logger,
+              `Error enqueuing account-exists email for user ${existingUser.id}`,
+              error,
+            );
+          });
+      }
+      return { message: REGISTER_RESPONSE_MESSAGE };
+    }
+
     let slug = this.utilityService.generateSlug(body.name);
 
     const organization = await this.organizationService.getBySlug(slug);
@@ -85,26 +159,7 @@ export class AuthService {
       slug = this.utilityService.generateSlug(body.name, true);
     }
 
-    const user = await this.userService.getByEmail(body.email);
-    if (user && user.isActive) {
-      throw new ConflictException('User already exists');
-    }
-
-    const plan = await this.planService.getByName(body.plan);
-    if (!plan) {
-      throw new InternalServerErrorException('Plans not found');
-    }
-
-    const passwordHash = await argon.hash(body.password);
-
-    const {
-      message,
-      organizationId,
-      userId,
-      createdUser,
-      createdOrganization,
-      token,
-    } = await this.dataSource
+    const { createdUser, createdOrganization, token } = await this.dataSource
       .transaction(async (manager) => {
         const createdOrganization = await manager
           .getRepository(OrganizationEntity)
@@ -117,8 +172,8 @@ export class AuthService {
               plan.name === 'Free' ? PaymentStatus.FREE : PaymentStatus.TRIAL,
           });
         const createdUser = await manager.getRepository(UserEntity).save({
-          email: body.email?.toLowerCase(),
-          userName: body.email?.split('@')[0],
+          email,
+          userName: email.split('@')[0],
           firstName: body.firstName,
           lastName: body.lastName,
           passwordHash,
@@ -131,7 +186,7 @@ export class AuthService {
         });
         const token = randomBytes(32).toString('hex');
         await this.cacheService.set(
-          `verify:email:${token}`,
+          `verify:email:${hashToken(token)}`,
           JSON.stringify({
             userId: createdUser.id,
             orgId: createdOrganization.id,
@@ -139,9 +194,6 @@ export class AuthService {
           this.configService.get<number>('TTL_EXPIRATION'),
         );
         return {
-          message: 'Registration successful. Please verify your email.',
-          organizationId: createdOrganization.id,
-          userId: createdUser.id,
           createdUser,
           createdOrganization,
           token,
@@ -149,9 +201,7 @@ export class AuthService {
       })
       .catch((error) => {
         if (error?.status < 500) throw error;
-        this.logger.error(error, {
-          organizationName: body.name,
-        });
+        logError(this.logger, 'Registration failed', error);
         throw new InternalServerErrorException('Failed to register user');
       });
 
@@ -160,23 +210,27 @@ export class AuthService {
     await this.emailQueue
       .add('welcome.email', {
         token,
-        email: body.email,
+        email,
         userId: createdUser.id,
       })
-      .catch(() => {
-        this.logger.error('Error enqueuing welcome email', {
-          userId: createdUser.id,
-        });
+      .catch((error) => {
+        logError(
+          this.logger,
+          `Error enqueuing welcome email for user ${createdUser.id}`,
+          error,
+        );
       });
     await this.subscriptionQueue
       .add('subscription.create', {
-        email: body.email,
+        email,
         orgId: createdOrganization.id,
       })
-      .catch(() => {
-        this.logger.error('Error enqueuing subscription creation', {
-          orgId: createdOrganization.id,
-        });
+      .catch((error) => {
+        logError(
+          this.logger,
+          `Error enqueuing subscription creation for org ${createdOrganization.id}`,
+          error,
+        );
       });
 
     this.audit(
@@ -185,11 +239,11 @@ export class AuthService {
       createdUser,
       createdOrganization,
     );
-    return { message, organizationId, userId };
+    return { message: REGISTER_RESPONSE_MESSAGE };
   }
 
   async verifyEmail(auditContext: AuditContextDto, token: string) {
-    const key = `verify:email:${token}`;
+    const key = `verify:email:${hashToken(token)}`;
     const tokenInfo = await this.cacheService.get(key);
     if (!tokenInfo) throw new UnauthorizedException('Invalid or expired token');
     const { userId, orgId } = JSON.parse(tokenInfo);
@@ -209,17 +263,27 @@ export class AuthService {
 
   async login(auditContext: AuditContextDto, loginDto: LoginDto) {
     const user = await this.userService.getByEmail(loginDto.email, true);
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user) {
+      await argon.verify(await getDummyPasswordHash(), loginDto.password);
+      this.auditLoginFailed(auditContext, 'unknown_user');
+      throw new UnauthorizedException('Invalid credentials');
+    }
     const isPasswordValid = await argon.verify(
       user.passwordHash,
       loginDto.password,
     );
-    if (!isPasswordValid)
+    if (!isPasswordValid) {
+      this.auditLoginFailed(auditContext, 'invalid_password', user);
       throw new UnauthorizedException('Invalid credentials');
-    if (!user?.isVerified)
+    }
+    if (!user?.isVerified) {
+      this.auditLoginFailed(auditContext, 'email_not_verified', user);
       throw new ForbiddenException('Please verify your email first');
-    if (!user?.isActive)
+    }
+    if (!user?.isActive) {
+      this.auditLoginFailed(auditContext, 'account_deactivated', user);
       throw new ForbiddenException('Your account has been deactivated');
+    }
     const payload = {
       userId: user.id,
       orgId: user.organization.id,
@@ -250,7 +314,7 @@ export class AuthService {
     );
     if (!existingRefreshToken)
       throw new UnauthorizedException('User logged out');
-    if (refreshToken !== existingRefreshToken)
+    if (hashToken(refreshToken) !== existingRefreshToken)
       throw new UnauthorizedException('Token was already rotated');
 
     await this.cacheService.delete(`auth:refresh:${userId}`);
@@ -338,7 +402,7 @@ export class AuthService {
     if (user) {
       const token = randomBytes(32).toString('hex');
       await this.cacheService.set(
-        `reset:password:${token}`,
+        `reset:password:${hashToken(token)}`,
         JSON.stringify({
           userId: user.id,
           email: user.email,
@@ -365,7 +429,8 @@ export class AuthService {
   }
   async resetPassword(auditContext: AuditContextDto, body: ResetPasswordDto) {
     const { token, password, confirmPassword } = body;
-    const tokenInfo = await this.cacheService.get(`reset:password:${token}`);
+    const resetKey = `reset:password:${hashToken(token)}`;
+    const tokenInfo = await this.cacheService.get(resetKey);
     if (!tokenInfo)
       throw new UnauthorizedException(
         'Password reset token is invalid or expired',
@@ -409,7 +474,7 @@ export class AuthService {
       existingUser,
       existingUser.organization,
     );
-    await this.cacheService.delete(`reset:password:${token}`);
+    await this.cacheService.delete(resetKey);
     return {
       accessToken,
       refreshToken,
@@ -428,7 +493,7 @@ export class AuthService {
 
       const token = randomBytes(32).toString('hex');
       await this.cacheService.set(
-        `verify:email:${token}`,
+        `verify:email:${hashToken(token)}`,
         JSON.stringify({ userId, orgId }),
         this.configService.get<number>('TTL_EXPIRATION'),
       );
@@ -456,7 +521,11 @@ export class AuthService {
     await this.cacheService.delete(`auth:refresh:${userId}`);
     const ttl = user.expiresIn - Math.floor(Date.now() / 1000);
     if (ttl > 0)
-      await this.cacheService.set(`auth:blacklist:${token}`, '1', ttl);
+      await this.cacheService.set(
+        `auth:blacklist:${hashToken(token)}`,
+        '1',
+        ttl,
+      );
 
     this.audit(
       auditContext,

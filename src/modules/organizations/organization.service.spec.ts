@@ -8,7 +8,12 @@ import { PlanService } from '../plans/plan.service';
 import { AuditLogService } from '../audit-logs/audit-log.service';
 import { WebhookDispatcherService } from '../webhook-dispatchers/webhook-dispatcher.service';
 import { StripeService } from '../stripe/stripe.service';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
 import { PaymentStatus } from '../../enums';
 
 const mockOrganizationRepository = {
@@ -247,6 +252,58 @@ describe('OrganizationService', () => {
 
       expect(result.name).toBe('New Name');
       expect(result.slug).toBe('new-name');
+    });
+
+    describe('slug race on save', () => {
+      const uniqueViolation = () => {
+        const err = new QueryFailedError('INSERT', [], new Error('dup'));
+        (err as any).code = '23505';
+        return err;
+      };
+
+      beforeEach(() => {
+        mockUtilityService.generateSlug
+          .mockReturnValueOnce('new-name')
+          .mockReturnValueOnce('new-name-abc');
+        mockOrganizationRepository.findOne
+          .mockResolvedValueOnce(null) // getBySlug → looked free
+          .mockResolvedValueOnce(mockOrg); // getById → found
+        mockOrganizationRepository.merge.mockReturnValue(undefined);
+      });
+
+      it('should retry with a suffixed slug on a unique violation', async () => {
+        mockOrganizationRepository.save
+          .mockRejectedValueOnce(uniqueViolation())
+          .mockResolvedValueOnce({ ...mockOrg, slug: 'new-name-abc' });
+
+        const result = await service.updateName(auditContext as any, userInfo, {
+          name: 'New Name',
+        });
+
+        expect(mockOrganizationRepository.save).toHaveBeenCalledTimes(2);
+        expect(result.slug).toBe('new-name-abc');
+      });
+
+      it('should throw ConflictException if the retry also collides', async () => {
+        mockOrganizationRepository.save.mockRejectedValue(uniqueViolation());
+
+        await expect(
+          service.updateName(auditContext as any, userInfo, {
+            name: 'New Name',
+          }),
+        ).rejects.toThrow(ConflictException);
+      });
+
+      it('should rethrow non-unique errors without retrying', async () => {
+        mockOrganizationRepository.save.mockRejectedValue(new Error('db down'));
+
+        await expect(
+          service.updateName(auditContext as any, userInfo, {
+            name: 'New Name',
+          }),
+        ).rejects.toThrow('db down');
+        expect(mockOrganizationRepository.save).toHaveBeenCalledTimes(1);
+      });
     });
   });
 

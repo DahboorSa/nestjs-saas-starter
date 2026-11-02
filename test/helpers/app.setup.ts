@@ -10,10 +10,16 @@ import { PlanEntity } from '../../src/modules/plans/entities/plan.entity';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
-// No-op replacement — prevents real Mailtrap/SES calls during e2e tests.
-// Tokens are stored in Redis synchronously before any email job is queued,
-// so tests can still read them; the email itself is simply never sent.
-const noopEmailQueue = { add: async () => {} };
+// Recording replacement — prevents real Mailtrap/SES calls during e2e tests.
+// Redis only holds the SHA-256 of each email token, so tests read the raw
+// token from the job the app would have queued (see getEmailToken in
+// fixtures.ts); the email itself is never sent.
+export const queuedEmails: { name: string; data: any }[] = [];
+const recordingEmailQueue = {
+  add: async (name: string, data: any) => {
+    queuedEmails.push({ name, data });
+  },
+};
 
 // Stub AI provider — prevents real Groq/Anthropic API calls during e2e tests.
 const mockAiProvider = {
@@ -50,7 +56,7 @@ export async function createTestApp(): Promise<INestApplication> {
     imports: [AppModule],
   })
     .overrideProvider(EmailQueueService)
-    .useValue(noopEmailQueue)
+    .useValue(recordingEmailQueue)
     .overrideProvider(EmailProcessor)
     .useValue({ process: async () => {} })
     .overrideProvider(StripeService)

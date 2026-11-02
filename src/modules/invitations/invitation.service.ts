@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import {
   ConflictException,
   Injectable,
@@ -27,6 +28,7 @@ import { OrganizationService } from '../organizations/organization.service';
 import { OrganizationEntity } from '../organizations/entities/organization.entity';
 import { UserEntity } from '../users/entities/user.entity';
 import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
+import { hashToken } from '../../common/utils/hash-token.util';
 import { AuditLogService } from '../audit-logs/audit-log.service';
 import { WebhookDispatcherService } from '../webhook-dispatchers/webhook-dispatcher.service';
 
@@ -83,13 +85,13 @@ export class InvitationService {
         ...(user && { user }),
         ...(metadata && { metadata }),
       })
-      .catch(() => {
-        this.logger.error('Error creating audit log');
+      .catch((error) => {
+        logError(this.logger, 'Error creating audit log', error);
       });
     this.dispatcher
       .dispatch(orgId, webhookEvent, webhookPayload)
       .catch((error) => {
-        this.logger.error('Error dispatching webhook', error);
+        logError(this.logger, 'Error dispatching webhook', error);
       });
   }
 
@@ -153,7 +155,7 @@ export class InvitationService {
         const error =
           userExists.organization.id === orgId
             ? 'User already exists in this organization'
-            : 'User already exists';
+            : 'This email may already be registered with another organization. Please check with the user first.';
         return { email, success: false, error };
       }
 
@@ -178,7 +180,7 @@ export class InvitationService {
 
       const { id: invitationId } = invitation;
       await this.cacheService.set(
-        `invite:${token}`,
+        `invite:${hashToken(token)}`,
         JSON.stringify({ invitationId, email, orgId, role, expiresAt }),
         this.configService.get<number>('INVITE_TOKEN_TTL'),
       );
@@ -214,7 +216,8 @@ export class InvitationService {
     token: string,
     body: AcceptInvitationDto,
   ) {
-    let inviteToken = await this.cacheService.get(`invite:${token}`);
+    const inviteKey = `invite:${hashToken(token)}`;
+    let inviteToken = await this.cacheService.get(inviteKey);
     let tokenData: {
       invitationId: number;
       email: string;
@@ -313,7 +316,7 @@ export class InvitationService {
     });
 
     await this.invitationRepository.save(updatedInvitation);
-    await this.cacheService.delete(`invite:${token}`);
+    await this.cacheService.delete(inviteKey);
 
     this.auditAndDispatch(
       auditContext,

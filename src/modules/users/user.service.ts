@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import {
   BadRequestException,
   ForbiddenException,
@@ -25,6 +26,7 @@ import { randomBytes } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { EmailQueueService } from '../../jobs/queues/email.queue';
 import { JwtUtilityService } from '../../common/utils/jwt-utility.service';
+import { hashToken } from '../../common/utils/hash-token.util';
 
 @Injectable()
 export class UserService {
@@ -141,11 +143,11 @@ export class UserService {
         resourceId: userId,
         user: userInfo,
       })
-      .catch(() => {
-        this.logger.error('Error creating audit');
+      .catch((error) => {
+        logError(this.logger, 'Error creating audit', error);
       });
     this.dispatcher.dispatch(orgId, webhookEvent, payload).catch((error) => {
-      this.logger.error('Error dispatching webhook', error);
+      logError(this.logger, 'Error dispatching webhook', error);
     });
   }
 
@@ -261,15 +263,23 @@ export class UserService {
       throw new BadRequestException('Email cannot be same as old email');
     }
 
+    const response = {
+      message:
+        'Email change request has been sent to your email, please check your inbox',
+    };
+
+    // Emails are globally unique across organizations. Answering "already
+    // exists" would let any logged-in user probe which emails are registered
+    // anywhere, so a taken address gets the same response and no token/email.
     const existingEmail = await this.userRepository.findOneBy({ email });
     if (existingEmail && existingEmail.id !== userId) {
-      throw new BadRequestException('Email already exists');
+      return response;
     }
 
     const token = randomBytes(32).toString('hex');
 
     await this.cacheService.set(
-      `change:email:${token}`,
+      `change:email:${hashToken(token)}`,
       JSON.stringify({
         userId,
         email,
@@ -284,14 +294,11 @@ export class UserService {
       email,
     });
 
-    return {
-      message:
-        'Email change request has been sent to your email, please check your inbox',
-    };
+    return response;
   }
 
   async confirmEmailChange(auditContext: AuditContextDto, token: string) {
-    const tokenKey = `change:email:${token}`;
+    const tokenKey = `change:email:${hashToken(token)}`;
     const tokenInfo = await this.cacheService.get(tokenKey);
     if (!tokenInfo)
       throw new UnauthorizedException(

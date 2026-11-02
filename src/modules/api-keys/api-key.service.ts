@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import {
   ForbiddenException,
   Injectable,
@@ -65,13 +66,13 @@ export class ApiKeyService {
         apiKey,
         ...(organization && { organization }),
       })
-      .catch(() => {
-        this.logger.error('Failed to create audit log');
+      .catch((error) => {
+        logError(this.logger, 'Failed to create audit log', error);
       });
     this.dispatcher
       .dispatch(orgId, webhookEvent, webhookPayload)
       .catch((error) => {
-        this.logger.error('Error dispatching webhook', error);
+        logError(this.logger, 'Error dispatching webhook', error);
       });
   }
 

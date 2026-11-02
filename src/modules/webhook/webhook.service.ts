@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Raw, Repository } from 'typeorm';
@@ -30,8 +31,8 @@ export class WebhookService {
         resourceId,
         metadata,
       })
-      .catch(() => {
-        this.logger.error('Failed to create audit log');
+      .catch((error) => {
+        logError(this.logger, 'Failed to create audit log', error);
       });
   }
 

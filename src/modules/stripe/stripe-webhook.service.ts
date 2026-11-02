@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import { Injectable, Logger } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { OrganizationService } from '../organizations/organization.service';
@@ -31,10 +32,10 @@ export class StripeWebhookService {
           this.logger.log(`Unhandled Stripe event: ${event.type}`);
       }
     } catch (error) {
-      const err = error as Error;
-      this.logger.error(
-        `Failed to process Stripe event ${event.type}: ${err?.message}`,
-        err?.stack,
+      logError(
+        this.logger,
+        `Failed to process Stripe event ${event.type}`,
+        error,
       );
       // Re-throw so controller returns 500 and Stripe retries
       throw error;

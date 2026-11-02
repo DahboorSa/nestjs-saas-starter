@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { CacheService } from '../../src/cache/cache.service';
+import { UserService } from '../../src/modules/users/user.service';
 import { UserRole } from '../../src/enums';
 import { WebhookEvent } from '../../src/enums';
+import { queuedEmails } from './app.setup';
 
 export interface UserTokens {
   accessToken: string;
@@ -26,25 +27,31 @@ function extractRefreshToken(setCookieHeaders: string | string[]): string {
   return match.split(';')[0].replace('refreshToken=', '');
 }
 
-async function getTokenFromCache(
-  app: INestApplication,
-  pattern: string,
-  userId: string,
-): Promise<string> {
-  const cacheService = app.get(CacheService);
-  const keys = await cacheService.getByPattern(pattern);
-  for (const key of keys) {
-    const raw = await cacheService.get(key);
-    if (!raw) continue;
-    const parsed = JSON.parse(raw);
-    if (parsed.userId === userId) {
-      const prefix = pattern.replace('*', '');
-      return key.replace(prefix, '');
-    }
+// Redis keeps only hashToken(token), so the raw token comes from the email
+// job the app queued. Returns the most recent matching job's token.
+function getEmailToken(
+  jobName: string,
+  match: { email?: string; userId?: string },
+): string {
+  for (let i = queuedEmails.length - 1; i >= 0; i--) {
+    const { name, data } = queuedEmails[i];
+    if (name !== jobName || !data.token) continue;
+    if (match.email && data.email !== match.email) continue;
+    if (match.userId && data.userId !== match.userId) continue;
+    return data.token;
   }
-  throw new Error(
-    `No cache entry found matching ${pattern} for userId=${userId}`,
-  );
+  throw new Error(`No ${jobName} email queued for ${JSON.stringify(match)}`);
+}
+
+// POST /auth/register deliberately returns only a message (no IDs), so tests
+// look the new user up by email.
+export async function getUserIdsByEmail(
+  app: INestApplication,
+  email: string,
+): Promise<{ userId: string; orgId: string }> {
+  const user = await app.get(UserService).getByEmail(email.toLowerCase(), true);
+  if (!user) throw new Error(`No user found for ${email}`);
+  return { userId: user.id, orgId: user.organization.id };
 }
 
 export async function registerAndVerify(
@@ -74,9 +81,9 @@ export async function registerAndVerify(
     throw new Error(`Register failed: ${JSON.stringify(registerRes.body)}`);
   }
 
-  const { userId, organizationId } = registerRes.body;
+  const { userId, orgId: organizationId } = await getUserIdsByEmail(app, email);
 
-  const verifyToken = await getTokenFromCache(app, 'verify:email:*', userId);
+  const verifyToken = getVerifyEmailToken(email);
   const verifyRes = await request(server)
     .post('/auth/verify-email')
     .query({ token: verifyToken });
@@ -175,29 +182,23 @@ export async function sendInvitation(
     );
   }
 
-  const cacheService = app.get(CacheService);
-  const keys = await cacheService.getByPattern('invite:*');
-  for (const key of keys) {
-    const raw = await cacheService.get(key);
-    if (!raw) continue;
-    const parsed = JSON.parse(raw);
-    if (parsed.email === email) {
-      return key.replace('invite:', '');
-    }
-  }
-  throw new Error(`No invite token found for email=${email}`);
+  return getEmailToken('invite.email', { email });
 }
 
 export async function getResetPasswordToken(
   app: INestApplication,
   userId: string,
 ): Promise<string> {
-  return getTokenFromCache(app, 'reset:password:*', userId);
+  return getEmailToken('forgot-password.email', { userId });
 }
 
 export async function getChangeEmailToken(
   app: INestApplication,
   userId: string,
 ): Promise<string> {
-  return getTokenFromCache(app, 'change:email:*', userId);
+  return getEmailToken('change-email.email', { userId });
+}
+
+export function getVerifyEmailToken(email: string): string {
+  return getEmailToken('welcome.email', { email: email.toLowerCase() });
 }

@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import {
   Controller,
   Post,
@@ -38,7 +39,7 @@ export class StripeWebhookController {
       if (error?.type === 'StripeSignatureVerificationError') {
         throw new BadRequestException('Invalid Stripe signature');
       }
-      this.logger.error('Stripe webhook processing failed', error);
+      logError(this.logger, 'Stripe webhook processing failed', error);
       throw error;
     }
     return { received: true };

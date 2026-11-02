@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import * as Nodemailer from 'nodemailer';
@@ -20,6 +21,13 @@ const buildTemplates = (baseUrl: string): Record<string, EmailTemplate> => ({
   'invite.email': ({ token, orgName, inviterName, inviterEmail }) => ({
     subject: `You have been invited to join ${orgName}`,
     text: `${inviterName} ${inviterEmail} invited you to join ${orgName} as a member.\nAccept invitation: ${baseUrl}/invitations/accept?token=${token}\nThis link expires in 48 hours.`,
+  }),
+  // Sent instead of creating anything when someone registers with an email
+  // that already has an account, so POST /auth/register can answer identically
+  // for new and existing emails (no account enumeration).
+  'account-exists.email': () => ({
+    subject: 'You already have an account',
+    text: `Someone (hopefully you) tried to register with this email address, but an account already exists.\nLog in: ${baseUrl}/login\nForgot your password? ${baseUrl}/forgot-password\nIf this was not you, you can safely ignore this email.`,
   }),
   'forgot-password.email': ({ token }) => ({
     subject: 'Reset your password',
@@ -111,7 +119,7 @@ export class EmailProcessor extends WorkerHost {
 
       this.logger.log('Email sent successfully', userId);
     } catch (error) {
-      this.logger.error(error);
+      logError(this.logger, `Email job ${job.id} failed`, error);
       throw error;
     }
   }

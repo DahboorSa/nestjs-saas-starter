@@ -1,9 +1,10 @@
+import { logError } from '../../common/utils/log-error.util';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLogService } from '../audit-logs/audit-log.service';
 import { WebhookDeliveryEntity } from './entities/webhook-delivery.entity';
-import { AuditAction, AuditResourceType } from '../../enums';
+import { AuditAction, AuditResourceType, DeliveryStatus } from '../../enums';
 import { OrganizationEntity } from '../organizations/entities/organization.entity';
 @Injectable()
 export class WebhookDeliveryService {
@@ -14,35 +15,44 @@ export class WebhookDeliveryService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(
+  async createPending(
     webhookEndpointId: string,
-    organizationId: string,
-    body: Partial<WebhookDeliveryEntity>,
-  ) {
-    const webhookData = this.webhookDeliveryRepository.create({
+    body: Pick<WebhookDeliveryEntity, 'event' | 'payload'>,
+  ): Promise<string> {
+    const delivery = await this.webhookDeliveryRepository.save({
       ...body,
+      attempt: 0,
+      statusCode: null,
+      status: DeliveryStatus.PENDING,
+      webhookEndpoint: { id: webhookEndpointId },
     });
-    const webhook = await this.webhookDeliveryRepository.save({
-      ...webhookData,
-      webhookEndpoint: {
-        id: webhookEndpointId,
-      },
-    });
+    return delivery.id;
+  }
 
+  async recordAttempt(
+    id: string,
+    organizationId: string,
+    result: Pick<WebhookDeliveryEntity, 'status' | 'statusCode' | 'attempt'>,
+  ) {
+    await this.webhookDeliveryRepository.update(id, result);
+
+    if (result.status !== DeliveryStatus.SUCCESS) return;
+
+    const delivery = await this.webhookDeliveryRepository.findOneBy({ id });
     this.auditLogService
       .create({
         ipAddress: '::1',
         userAgent: 'webhook-delivery',
         action: AuditAction.WEBHOOK_DELIVERED,
         resourceType: AuditResourceType.WEBHOOK,
-        resourceId: webhook.id,
+        resourceId: id,
         metadata: {
-          payload: body.payload,
+          payload: delivery?.payload,
         },
         organization: { id: organizationId } as OrganizationEntity,
       })
-      .catch(() => {
-        this.logger.error('Failed to create audit log');
+      .catch((error) => {
+        logError(this.logger, 'Failed to create audit log', error);
       });
   }
 }

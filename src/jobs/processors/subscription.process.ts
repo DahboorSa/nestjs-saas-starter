@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
@@ -39,7 +40,7 @@ export class SubscriptionProcessor extends WorkerHost {
           break;
       }
     } catch (error) {
-      this.logger.error(error);
+      logError(this.logger, `Subscription job ${job.id} failed`, error);
       throw error;
     }
   }

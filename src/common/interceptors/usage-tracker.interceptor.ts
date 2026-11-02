@@ -1,3 +1,4 @@
+import { logError } from '../utils/log-error.util';
 import {
   CallHandler,
   ConflictException,
@@ -55,7 +56,7 @@ export class UsageTrackerInterceptor implements NestInterceptor {
           },
         })
         .catch((error) =>
-          this.logger.error('Failed to create audit log', error),
+          logError(this.logger, 'Failed to create audit log', error),
         );
     }
   }

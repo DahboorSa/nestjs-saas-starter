@@ -60,6 +60,22 @@ describe('Users (e2e)', () => {
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('message');
     });
+
+    it('answers a taken email exactly like a free one', async () => {
+      const other = await registerAndVerify(app);
+
+      const taken = await request(server)
+        .post('/users/me/email')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ email: other.email });
+      const free = await request(server)
+        .post('/users/me/email')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ email: uniqueEmail('free') });
+
+      expect(taken.status).toBe(free.status);
+      expect(taken.body).toEqual(free.body);
+    });
   });
 
   describe('POST /users/me/email/confirm', () => {

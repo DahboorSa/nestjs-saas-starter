@@ -5,8 +5,10 @@ import {
   registerAndVerify,
   uniqueEmail,
   getResetPasswordToken,
+  getVerifyEmailToken,
 } from './helpers/fixtures';
 import { CacheService } from '../src/cache/cache.service';
+import { hashToken } from '../src/common/utils/hash-token.util';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication;
@@ -22,7 +24,7 @@ describe('Auth (e2e)', () => {
   });
 
   describe('POST /auth/register', () => {
-    it('returns 201 with userId and organizationId', async () => {
+    it('returns 201 with only a message (no account IDs)', async () => {
       const res = await request(server)
         .post('/auth/register')
         .send({
@@ -32,9 +34,27 @@ describe('Auth (e2e)', () => {
         });
 
       expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('userId');
-      expect(res.body).toHaveProperty('organizationId');
-      expect(res.body).toHaveProperty('message');
+      expect(Object.keys(res.body)).toEqual(['message']);
+    });
+
+    it('answers an already-registered email exactly like a new one', async () => {
+      const email = uniqueEmail('dupe');
+      const body = { password: 'Test1234!', name: `Org ${Date.now()}` };
+      const first = await request(server)
+        .post('/auth/register')
+        .send({ email, ...body });
+
+      const second = await request(server)
+        .post('/auth/register')
+        .send({ email, ...body, name: `Other ${Date.now()}` });
+      const differentCase = await request(server)
+        .post('/auth/register')
+        .send({ email: email.toUpperCase(), ...body });
+
+      expect(second.status).toBe(first.status);
+      expect(second.body).toEqual(first.body);
+      expect(differentCase.status).toBe(first.status);
+      expect(differentCase.body).toEqual(first.body);
     });
   });
 
@@ -46,19 +66,15 @@ describe('Auth (e2e)', () => {
         .send({ email, password: 'Test1234!', name: `Org ${Date.now()}` });
 
       expect(regRes.status).toBe(201);
-      const { userId } = regRes.body;
 
+      const token = getVerifyEmailToken(email);
+
+      // Redis must hold only the hash of the token, never the token itself.
       const cacheService = app.get(CacheService);
-      const keys = await cacheService.getByPattern('verify:email:*');
-      let token: string | null = null;
-      for (const key of keys) {
-        const raw = await cacheService.get(key);
-        if (raw && JSON.parse(raw).userId === userId) {
-          token = key.replace('verify:email:', '');
-          break;
-        }
-      }
-      expect(token).not.toBeNull();
+      expect(
+        await cacheService.get(`verify:email:${hashToken(token)}`),
+      ).not.toBeNull();
+      expect(await cacheService.get(`verify:email:${token}`)).toBeNull();
 
       const res = await request(server)
         .post('/auth/verify-email')

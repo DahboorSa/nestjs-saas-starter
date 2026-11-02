@@ -6,6 +6,7 @@ import { Request } from 'express';
 import { UserService } from '../../../modules/users/user.service';
 import { UserInfoDto } from '../../../common/dto';
 import { CacheService } from '../../../cache/cache.service';
+import { hashToken } from '../../../common/utils/hash-token.util';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -26,7 +27,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
 
     const isBlacklisted = await this.cacheService.get(
-      `auth:blacklist:${token}`,
+      `auth:blacklist:${hashToken(token)}`,
     );
     if (isBlacklisted)
       throw new UnauthorizedException('Token has been revoked');

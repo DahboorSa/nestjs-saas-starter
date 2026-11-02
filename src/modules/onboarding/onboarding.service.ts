@@ -1,3 +1,4 @@
+import { logError } from '../../common/utils/log-error.util';
 import {
   Inject,
   Injectable,
@@ -114,11 +115,10 @@ export class OnboardingService {
       const answer = await this.aiProvider.ask(systemPrompt, question);
       return { answer };
     } catch (err) {
-      this.logger.error('AI provider failed', err);
+      logError(this.logger, 'AI provider failed', err);
+      // Generic on purpose: err.message can carry provider/DB internals.
       throw new InternalServerErrorException(
-        err instanceof Error
-          ? err.message
-          : 'Failed to get a response from the AI assistant',
+        'Failed to get a response from the AI assistant',
       );
     }
   }
