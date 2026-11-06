@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { OrganizationService } from '../organizations/organization.service';
 import { UserService } from '../users/user.service';
 import { PlanService } from '../plans/plan.service';
 import { DataSource } from 'typeorm';
@@ -23,7 +22,6 @@ import { hashToken } from '../../common/utils/hash-token.util';
 
 jest.mock('argon2');
 
-const mockOrganizationService = { getBySlug: jest.fn() };
 const mockUserService = {
   getByEmail: jest.fn(),
   getById: jest.fn(),
@@ -38,7 +36,6 @@ const mockEmailQueueService = { add: jest.fn() };
 const mockSubscriptionQueueService = { add: jest.fn() };
 const mockConfigService = { get: jest.fn().mockReturnValue(604800) };
 const mockUtilityService = {
-  generateSlug: jest.fn(),
   getTrialEndDate: jest.fn(),
 };
 const mockJwtUtilityService = {
@@ -67,7 +64,6 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: OrganizationService, useValue: mockOrganizationService },
         { provide: UserService, useValue: mockUserService },
         { provide: PlanService, useValue: mockPlanService },
         { provide: DataSource, useValue: mockDataSource },
@@ -98,11 +94,6 @@ describe('AuthService', () => {
       password: 'Password123!',
       plan: 'Free',
     };
-
-    beforeEach(() => {
-      mockUtilityService.generateSlug.mockReturnValue('test-org');
-      mockOrganizationService.getBySlug.mockResolvedValue(null);
-    });
 
     describe('email already registered', () => {
       const freePlan = { id: 1, name: 'Free', trialDays: 0 };

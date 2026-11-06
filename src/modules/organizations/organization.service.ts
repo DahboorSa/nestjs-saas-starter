@@ -1,6 +1,5 @@
 import { logError } from '../../common/utils/log-error.util';
 import {
-  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -10,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OrganizationEntity } from './entities/organization.entity';
-import { FindOptionsWhere, QueryFailedError, Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
 import {
@@ -18,7 +17,6 @@ import {
   UpdateOrganizationDto,
   UpdatePlanDto,
 } from './dto';
-import { UtilityService } from '../../common/utils/utility.service';
 import { UserService } from '../users/user.service';
 import { PlanEntity } from '../plans/entities/plan.entity';
 import { PlanService } from '../plans/plan.service';
@@ -39,7 +37,6 @@ export class OrganizationService {
     @InjectRepository(OrganizationEntity)
     private readonly organizationRepository: Repository<OrganizationEntity>,
     private readonly stripeService: StripeService,
-    private readonly utilityService: UtilityService,
     private readonly userService: UserService,
     private readonly planService: PlanService,
     private readonly auditLogService: AuditLogService,
@@ -60,10 +57,6 @@ export class OrganizationService {
 
   async getByName(name: string): Promise<OrganizationEntity | null> {
     return this.organizationRepository.findOne({ where: { name } });
-  }
-
-  async getBySlug(slug: string): Promise<OrganizationEntity | null> {
-    return this.organizationRepository.findOne({ where: { slug } });
   }
 
   async getById(id: string): Promise<OrganizationEntity | null> {
@@ -105,16 +98,12 @@ export class OrganizationService {
     user: UserInfoDto,
     body: UpdateOrganizationDto,
   ): Promise<OrganizationEntity> {
-    let slug = this.utilityService.generateSlug(body.name);
-    const existingOrganization = await this.getBySlug(slug);
-    if (existingOrganization) {
-      slug = this.utilityService.generateSlug(body.name, true);
-    }
     const organization = await this.getById(user.orgId);
     if (!organization) throw new NotFoundException('Organization not found');
     const oldName = organization.name;
 
-    const saved = await this.saveWithUniqueSlug(organization, body.name, slug);
+    this.organizationRepository.merge(organization, { name: body.name });
+    const saved = await this.organizationRepository.save(organization);
 
     this.auditLogService
       .create({
@@ -141,44 +130,6 @@ export class OrganizationService {
         logError(this.logger, 'Error dispatching webhook', error);
       });
     return saved;
-  }
-
-  // The getBySlug() check in updateName() is check-then-act, so two concurrent
-  // renames can pick the same slug. The unique constraint is the real guard:
-  // on a violation, retry once with a random suffix, then give up with a 409.
-  private async saveWithUniqueSlug(
-    organization: OrganizationEntity,
-    name: string,
-    slug: string,
-  ): Promise<OrganizationEntity> {
-    const apply = (nextSlug: string) =>
-      this.organizationRepository.merge(organization, {
-        id: organization.id,
-        name,
-        slug: nextSlug,
-      });
-
-    apply(slug);
-    try {
-      return await this.organizationRepository.save(organization);
-    } catch (error) {
-      if (!this.isUniqueViolation(error)) throw error;
-    }
-
-    apply(this.utilityService.generateSlug(name, true));
-    try {
-      return await this.organizationRepository.save(organization);
-    } catch (error) {
-      if (!this.isUniqueViolation(error)) throw error;
-      throw new ConflictException('Organization slug already taken, retry');
-    }
-  }
-
-  private isUniqueViolation(error: unknown): boolean {
-    return (
-      error instanceof QueryFailedError &&
-      (error as QueryFailedError & { code?: string }).code === '23505'
-    );
   }
 
   async updateMany(

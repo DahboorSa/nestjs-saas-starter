@@ -28,7 +28,7 @@ A production-ready, multi-tenant SaaS backend built with NestJS. Authentication,
 ## Features
 
 - **Auth** — register, email verification, login, refresh-token rotation, logout, forgot/reset/change password, email change with confirmation
-- **Multi-tenancy** — organizations with slugs; roles `OWNER > ADMIN > MEMBER`; invitations with expiry
+- **Multi-tenancy** — organizations; roles `OWNER > ADMIN > MEMBER`; invitations with expiry
 - **API keys** — org-scoped, hashed, optional expiry, last-used tracking, plan-limited
 - **Webhooks** — HMAC-SHA256 signed delivery, retries, per-event delivery history
 - **Billing** — Stripe subscriptions, trials with grace period, plan switching, invoices and payment methods
@@ -551,7 +551,7 @@ src/
     decorators/              # @Public, @JwtOnly, @Roles, @CurrentUser, @AuditContext, @SkipUsageTracking
     dto/                     # Shared DTOs
     interceptors/            # Usage tracker
-    utils/                   # hashToken, logError, JWT and slug helpers
+    utils/                   # hashToken, logError, JWT helpers
   enums/
   modules/
     auth/  users/  organizations/  plans/  invitations/  api-keys/

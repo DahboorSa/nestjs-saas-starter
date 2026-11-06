@@ -1,22 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 
 @Injectable()
 export class UtilityService {
   constructor() {}
-
-  generateSlug(str: string, addSuffix?: boolean): string {
-    return addSuffix
-      ? str
-          .toLowerCase()
-          .replace(/[^\w ]+/g, '')
-          .replace(/ +/g, '-')
-          .concat('-' + randomUUID().slice(0, 8))
-      : str
-          .toLowerCase()
-          .replace(/[^\w ]+/g, '')
-          .replace(/ +/g, '-');
-  }
 
   formatYYMM(date: Date): string {
     const year = date.getFullYear();

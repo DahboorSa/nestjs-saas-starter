@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { OrganizationModule } from '../organizations/organization.module';
 import { UserModule } from '../users/user.module';
 import { PlanModule } from '../plans/plan.module';
 import { JobModule } from '../../jobs/job.module';
@@ -16,7 +15,6 @@ import { SubscriptionJobModule } from '../../jobs/subscription-job.module';
 
 @Module({
   imports: [
-    OrganizationModule,
     UserModule,
     PlanModule,
     JobModule,

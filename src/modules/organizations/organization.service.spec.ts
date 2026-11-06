@@ -2,18 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrganizationService } from './organization.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { OrganizationEntity } from './entities/organization.entity';
-import { UtilityService } from '../../common/utils/utility.service';
 import { UserService } from '../users/user.service';
 import { PlanService } from '../plans/plan.service';
 import { AuditLogService } from '../audit-logs/audit-log.service';
 import { WebhookDispatcherService } from '../webhook-dispatchers/webhook-dispatcher.service';
 import { StripeService } from '../stripe/stripe.service';
-import {
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
-import { QueryFailedError } from 'typeorm';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PaymentStatus } from '../../enums';
 
 const mockOrganizationRepository = {
@@ -23,7 +17,6 @@ const mockOrganizationRepository = {
   merge: jest.fn(),
 };
 
-const mockUtilityService = { generateSlug: jest.fn() };
 const mockUserService = { getTotalActiveUsers: jest.fn() };
 const mockPlanService = { getByName: jest.fn() };
 const mockAuditLogService = { create: jest.fn().mockResolvedValue(undefined) };
@@ -36,7 +29,6 @@ const userInfo = { userId: 'user-1', orgId: 'org-1' } as any;
 const mockOrg: Partial<OrganizationEntity> = {
   id: 'org-1',
   name: 'Test Org',
-  slug: 'test-org',
   isActive: true,
   plan: { id: 1, name: 'Free', limits: { maxMembers: 5 } } as any,
 };
@@ -56,7 +48,6 @@ describe('OrganizationService', () => {
           provide: getRepositoryToken(OrganizationEntity),
           useValue: mockOrganizationRepository,
         },
-        { provide: UtilityService, useValue: mockUtilityService },
         { provide: UserService, useValue: mockUserService },
         { provide: PlanService, useValue: mockPlanService },
         { provide: AuditLogService, useValue: mockAuditLogService },
@@ -93,27 +84,6 @@ describe('OrganizationService', () => {
     });
   });
 
-  describe('getBySlug', () => {
-    it('should return organization by slug', async () => {
-      mockOrganizationRepository.findOne.mockResolvedValue(mockOrg);
-
-      const result = await service.getBySlug('test-org');
-
-      expect(result).toEqual(mockOrg);
-      expect(mockOrganizationRepository.findOne).toHaveBeenCalledWith({
-        where: { slug: 'test-org' },
-      });
-    });
-
-    it('should return null if not found', async () => {
-      mockOrganizationRepository.findOne.mockResolvedValue(null);
-
-      const result = await service.getBySlug('unknown-slug');
-
-      expect(result).toBeNull();
-    });
-  });
-
   describe('getById', () => {
     it('should return organization with plan relation', async () => {
       mockOrganizationRepository.findOne.mockResolvedValue(mockOrg);
@@ -141,10 +111,7 @@ describe('OrganizationService', () => {
       mockOrganizationRepository.create.mockReturnValue(mockOrg);
       mockOrganizationRepository.save.mockResolvedValue(mockOrg);
 
-      const result = await service.create({
-        name: 'Test Org',
-        slug: 'test-org',
-      } as any);
+      const result = await service.create({ name: 'Test Org' } as any);
 
       expect(result).toEqual(mockOrg);
       expect(mockOrganizationRepository.create).toHaveBeenCalled();
@@ -188,108 +155,50 @@ describe('OrganizationService', () => {
 
   describe('updateName', () => {
     it('should throw NotFoundException if organization not found', async () => {
-      mockUtilityService.generateSlug.mockReturnValue('new-name');
-      mockOrganizationRepository.findOne
-        .mockResolvedValueOnce(null) // getBySlug → no conflict
-        .mockResolvedValueOnce(null); // getById → not found
+      mockOrganizationRepository.findOne.mockResolvedValueOnce(null);
 
       await expect(
         service.updateName(auditContext as any, userInfo, { name: 'New Name' }),
       ).rejects.toThrow(NotFoundException);
+      expect(mockOrganizationRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should generate a new slug if slug already exists', async () => {
-      mockUtilityService.generateSlug
-        .mockReturnValueOnce('new-name') // first call
-        .mockReturnValueOnce('new-name-abc'); // second call with randomize
-      mockOrganizationRepository.findOne
-        .mockResolvedValueOnce(mockOrg) // getBySlug → conflict exists
-        .mockResolvedValueOnce(mockOrg); // getById → found
+    it('should update only the name and return the saved organization', async () => {
+      mockOrganizationRepository.findOne.mockResolvedValueOnce({ ...mockOrg });
       mockOrganizationRepository.merge.mockReturnValue(undefined);
       mockOrganizationRepository.save.mockResolvedValue({
         ...mockOrg,
         name: 'New Name',
-        slug: 'new-name-abc',
       });
 
       const result = await service.updateName(auditContext as any, userInfo, {
         name: 'New Name',
       });
 
-      expect(mockUtilityService.generateSlug).toHaveBeenCalledTimes(2);
-      expect(result.slug).toBe('new-name-abc');
-    });
-
-    it('should update name and return updated organization', async () => {
-      mockUtilityService.generateSlug.mockReturnValue('new-name');
-      mockOrganizationRepository.findOne
-        .mockResolvedValueOnce(null) // getBySlug → no conflict
-        .mockResolvedValueOnce(mockOrg); // getById → found
-      mockOrganizationRepository.merge.mockReturnValue(undefined);
-      mockOrganizationRepository.save.mockResolvedValue({
-        ...mockOrg,
-        name: 'New Name',
-        slug: 'new-name',
-      });
-
-      const result = await service.updateName(auditContext as any, userInfo, {
-        name: 'New Name',
-      });
-
+      expect(mockOrganizationRepository.merge).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'org-1' }),
+        { name: 'New Name' },
+      );
       expect(result.name).toBe('New Name');
-      expect(result.slug).toBe('new-name');
     });
 
-    describe('slug race on save', () => {
-      const uniqueViolation = () => {
-        const err = new QueryFailedError('INSERT', [], new Error('dup'));
-        (err as any).code = '23505';
-        return err;
-      };
-
-      beforeEach(() => {
-        mockUtilityService.generateSlug
-          .mockReturnValueOnce('new-name')
-          .mockReturnValueOnce('new-name-abc');
-        mockOrganizationRepository.findOne
-          .mockResolvedValueOnce(null) // getBySlug → looked free
-          .mockResolvedValueOnce(mockOrg); // getById → found
-        mockOrganizationRepository.merge.mockReturnValue(undefined);
+    it('should audit and dispatch the old and new name', async () => {
+      mockOrganizationRepository.findOne.mockResolvedValueOnce({ ...mockOrg });
+      mockOrganizationRepository.save.mockResolvedValue({
+        ...mockOrg,
+        name: 'New Name',
       });
 
-      it('should retry with a suffixed slug on a unique violation', async () => {
-        mockOrganizationRepository.save
-          .mockRejectedValueOnce(uniqueViolation())
-          .mockResolvedValueOnce({ ...mockOrg, slug: 'new-name-abc' });
-
-        const result = await service.updateName(auditContext as any, userInfo, {
-          name: 'New Name',
-        });
-
-        expect(mockOrganizationRepository.save).toHaveBeenCalledTimes(2);
-        expect(result.slug).toBe('new-name-abc');
+      await service.updateName(auditContext as any, userInfo, {
+        name: 'New Name',
       });
 
-      it('should throw ConflictException if the retry also collides', async () => {
-        mockOrganizationRepository.save.mockRejectedValue(uniqueViolation());
-
-        await expect(
-          service.updateName(auditContext as any, userInfo, {
-            name: 'New Name',
-          }),
-        ).rejects.toThrow(ConflictException);
-      });
-
-      it('should rethrow non-unique errors without retrying', async () => {
-        mockOrganizationRepository.save.mockRejectedValue(new Error('db down'));
-
-        await expect(
-          service.updateName(auditContext as any, userInfo, {
-            name: 'New Name',
-          }),
-        ).rejects.toThrow('db down');
-        expect(mockOrganizationRepository.save).toHaveBeenCalledTimes(1);
-      });
+      expect(mockAuditLogService.create).toHaveBeenCalled();
+      expect(mockDispatcher.dispatch).toHaveBeenCalledWith(
+        'org-1',
+        expect.anything(),
+        { oldName: 'Test Org', newName: 'New Name' },
+      );
     });
   });
 

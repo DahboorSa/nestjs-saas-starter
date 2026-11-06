@@ -23,8 +23,6 @@ export class OrganizationEntity {
   id: string;
   @Column()
   name: string;
-  @Column({ unique: true })
-  slug: string;
   @Column({ nullable: true, name: 'stripe_customer_id' })
   stripeCustomerId: string;
   @Column({ nullable: true, name: 'stripe_subscription_id' })

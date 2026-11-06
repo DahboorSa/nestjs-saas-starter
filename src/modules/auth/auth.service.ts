@@ -17,7 +17,6 @@ import {
   ResendVerifyEmailDto,
 } from './dto';
 import { AuditContextDto, UserInfoDto } from '../../common/dto';
-import { OrganizationService } from '../organizations/organization.service';
 import { UserService } from '../users/user.service';
 import { PlanService } from '../plans/plan.service';
 import { DataSource } from 'typeorm';
@@ -61,7 +60,6 @@ const getDummyPasswordHash = () =>
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   constructor(
-    private readonly organizationService: OrganizationService,
     private readonly userService: UserService,
     private readonly planService: PlanService,
     private readonly dataSource: DataSource,
@@ -150,21 +148,12 @@ export class AuthService {
       return { message: REGISTER_RESPONSE_MESSAGE };
     }
 
-    let slug = this.utilityService.generateSlug(body.name);
-
-    const organization = await this.organizationService.getBySlug(slug);
-    if (organization) {
-      this.logger.log('Organization already exists, creating new slug');
-      slug = this.utilityService.generateSlug(body.name, true);
-    }
-
     const { createdUser, createdOrganization, token } = await this.dataSource
       .transaction(async (manager) => {
         const createdOrganization = await manager
           .getRepository(OrganizationEntity)
           .save({
             name: body.name,
-            slug,
             plan,
             trialEndsAt: this.utilityService.getTrialEndDate(plan.trialDays),
             paymentStatus:

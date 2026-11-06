@@ -17,7 +17,7 @@ const mockUserService = {
 const auditContext = { ipAddress: '127.0.0.1', userAgent: 'jest' } as any;
 const userInfo = { userId: 'user-1', orgId: 'org-1' } as any;
 
-const mockOrg = { id: 'org-1', name: 'Test Org', slug: 'test-org' };
+const mockOrg = { id: 'org-1', name: 'Test Org' };
 
 describe('OrganizationController', () => {
   let controller: OrganizationController;
@@ -66,7 +66,7 @@ describe('OrganizationController', () => {
   describe('updateOrganizations', () => {
     it('should update and return organization', async () => {
       const body = { name: 'New Name' } as any;
-      const expected = { ...mockOrg, name: 'New Name', slug: 'new-name' };
+      const expected = { ...mockOrg, name: 'New Name' };
       mockOrganizationService.updateName.mockResolvedValue(expected);
 
       const result = await controller.updateOrganizations(
