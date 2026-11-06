@@ -9,6 +9,7 @@ export class DatabaseConfig {
   sync: boolean = process.env.DB_SYNC === 'true';
   logging: boolean = process.env.DB_LOGGING === 'true';
   ssl: boolean = process.env.DB_SSL === 'true';
+  migrationsRun: boolean = process.env.DB_MIGRATIONS_RUN === 'true';
 }
 
 export default registerAs('database', () => new DatabaseConfig());

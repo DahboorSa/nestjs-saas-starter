@@ -48,6 +48,7 @@ Guidance for Claude Code in this repository.
 ## Database and migrations
 
 - Follow the README's Database section (`DB_SYNC=false`, `yarn build` before `migration:generate`).
+- Deployed services set `DB_MIGRATIONS_RUN=true`, so a migration runs on the next start (the glob in `database.module.ts` picks up compiled `dist/` migrations). Write each one to be safe against the previous release still running during a deploy.
 - Postgres cannot drop one enum value. A migration that adds a value uses `ADD VALUE IF NOT EXISTS`, and its `down()` rebuilds the type from the full list of values at that point.
 - `audit_logs` is indexed on `(organization_id, created_at)` only. `user_id` and `api_key_id` are deliberately not indexed: nothing queries by them and audit is write-heavy. `webhook_endpoints.events` has no GIN index because the dispatcher query is already narrowed by the org foreign key.
 

@@ -142,6 +142,7 @@ Copy `.env.example` to `.env`. The app **fails at startup** when a required vari
 | `DB_SYNC`                | Auto-sync entities. Must be `false` for migrations and in production           | `false`                 |
 | `DB_LOGGING`             | Enable query logging                                                           | `false`                 |
 | `DB_SSL`                 | Use SSL for the Postgres connection (for example RDS)                          | `false`                 |
+| `DB_MIGRATIONS_RUN`      | Run pending migrations at startup. Set `true` on deployed services              | `false`                 |
 | `REDIS_HOST`             | Redis host                                                                     | `localhost`             |
 | `REDIS_PORT`             | Redis port                                                                     | `6379`                  |
 | `JWT_SECRET`             | Access token secret                                                            | `your_secret`           |
@@ -489,6 +490,7 @@ Delivery: 5-second timeout, 3 attempts with exponential backoff (a `404` is not 
 PostgreSQL via TypeORM. Users and API keys are soft-deleted (`isActive: false`). Migrations live in `src/database/migrations/` and are the source of truth for the schema.
 
 - Set `DB_SYNC=false` before running migrations, and never use `DB_SYNC=true` in production. E2E tests use it on purpose against a throwaway database.
+- **Deployed services**: set `DB_MIGRATIONS_RUN=true` so pending migrations run when the app starts, before it accepts traffic. A failing migration stops startup. This suits a single instance; with several instances starting together, run `yarn migration:run` as a separate release step instead and leave the flag off. Locally it stays off and you run `yarn migration:run` yourself.
 - `data-source.ts` (used only by the CLI) loads entities from both `src/` and `dist/`. **Run `yarn build` before `migration:generate`**, otherwise a stale `dist/` produces bogus drop and recreate statements.
 - A nullable column typed `X | null` needs an explicit `type` in `@Column(...)`, because TypeORM cannot infer a type from a union.
 
