@@ -1,13 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { ObserveInstrument } from './observe';
 import { setupSwagger } from './swagger.setup';
 import { resolveCorsOrigin } from './config/cors.config';
 import { helmetMiddleware } from './config/helmet.config';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+    instrument: ObserveInstrument,
+  });
   app.use(helmetMiddleware());
   app.use(cookieParser());
   app.enableCors({

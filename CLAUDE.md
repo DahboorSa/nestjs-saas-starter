@@ -58,5 +58,6 @@ The README's Testing & CI section covers how to run things. The e2e harness has 
 - `test/helpers/env.setup.ts` hardcodes the environment. `DB_SYNC=true` is intentional there, so no migrations run for e2e.
 - `test/helpers/app.setup.ts` stubs the email queue (it records jobs in `queuedEmails`), the AI provider, and Stripe, and seeds plans with fake `stripePriceId`s.
 - Tests read raw tokens from the recorded email jobs (`getEmailToken` in `fixtures.ts`), never from Redis, because Redis only holds hashes.
+- `@nestjs/observe` is ESM-only, which Jest cannot load, so `test/jest-e2e.json` maps it to `test/helpers/observe.stub.ts`. Any other ESM-only dependency needs the same treatment.
 - `POST /auth/register` returns no IDs, so tests look the new user up by email.
 - Arguments after `yarn test:e2e` are not forwarded to jest; use the single-file recipe in the README.

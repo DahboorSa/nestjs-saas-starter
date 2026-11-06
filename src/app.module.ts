@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ObserveModule } from './observe';
 import { DatabaseModule } from './database/database.module';
 import databaseConfig from './config/database.config';
 import JwtConfig from './config/jwt.config';
@@ -30,6 +31,11 @@ import { HealthModule } from './modules/health/health.module';
       envFilePath: '.env',
       isGlobal: true,
       load: [databaseConfig, JwtConfig],
+    }),
+    ObserveModule.forRoot({
+      appKey: process.env.OBSERVE_APP_KEY,
+      appSecret: process.env.OBSERVE_APP_SECRET,
+      serviceId: 'saas-service',
     }),
     TypeOrmModule.forFeature([AuditLogEntity]),
     CacheModule,

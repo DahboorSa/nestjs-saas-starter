@@ -52,6 +52,7 @@ A production-ready, multi-tenant SaaS backend built with NestJS. Authentication,
 - **Password hashing**: Argon2
 - **Payments**: Stripe
 - **AI**: Groq (`openai/gpt-oss-20b` by default, set via `GROQ_MODEL`) or Anthropic Claude (`claude-haiku-4-5`) behind a pluggable provider
+- **Observability**: [`@nestjs/observe`](https://observe.nestjs.com) (traces and metrics)
 - **API docs**: Swagger / OpenAPI (`@nestjs/swagger`)
 - **Containers**: Docker + Docker Compose
 
@@ -171,6 +172,8 @@ Copy `.env.example` to `.env`. The app **fails at startup** when a required vari
 | `GROQ_API_KEY`           | Required when `AI_PROVIDER=groq`                                               | `gsk_...`               |
 | `GROQ_MODEL`             | Groq model id (optional)                                                       | `openai/gpt-oss-20b`    |
 | `ANTHROPIC_API_KEY`      | Required when `AI_PROVIDER=claude`                                             | `sk-ant-...`            |
+| `OBSERVE_APP_KEY`        | `@nestjs/observe` app key; set it in deployed environments                     | unset                   |
+| `OBSERVE_APP_SECRET`     | `@nestjs/observe` app secret; set it in deployed environments                  | unset                   |
 
 ---
 

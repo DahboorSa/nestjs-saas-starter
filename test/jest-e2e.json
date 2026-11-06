@@ -6,7 +6,10 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "setupFiles": ["./helpers/env.setup.ts"],
+  "moduleNameMapper": {
+    "^@nestjs/observe$": "<rootDir>/helpers/observe.stub.ts"
+  },
+  "setupFiles":["./helpers/env.setup.ts"],
   "testTimeout": 60000,
   "forceExit": true
 }
