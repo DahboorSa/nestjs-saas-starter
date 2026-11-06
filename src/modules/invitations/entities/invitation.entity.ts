@@ -22,8 +22,9 @@ export class InvitationEntity {
     enum: UserRole,
   })
   role: UserRole;
-  @Column()
-  token: string;
+  @Index('IDX_invitations_token_hash', { unique: true })
+  @Column({ name: 'token_hash' })
+  tokenHash: string;
   @Column({
     type: 'enum',
     enum: InvitationStatus,

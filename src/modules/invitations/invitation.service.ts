@@ -35,7 +35,7 @@ import { WebhookDispatcherService } from '../webhook-dispatchers/webhook-dispatc
 
 export interface InvitationResponse extends Omit<
   InvitationEntity,
-  'invitedBy' | 'organization' | 'id' | 'token'
+  'invitedBy' | 'organization' | 'id' | 'tokenHash'
 > {
   invitedBy: string;
 }
@@ -173,10 +173,11 @@ export class InvitationService {
           this.configService.getOrThrow<number>('INVITE_TOKEN_TTL') * 1000,
       );
 
+      const tokenHash = hashToken(token);
       const invitation = await this.create({
         email,
         role,
-        token,
+        tokenHash,
         organization,
         invitedBy: userInfo,
         status: InvitationStatus.PENDING,
@@ -185,7 +186,7 @@ export class InvitationService {
 
       const { id: invitationId } = invitation;
       await this.cacheService.set(
-        `invite:${hashToken(token)}`,
+        `invite:${tokenHash}`,
         JSON.stringify({ invitationId, email, orgId, role, expiresAt }),
         this.configService.get<number>('INVITE_TOKEN_TTL'),
       );
@@ -221,7 +222,8 @@ export class InvitationService {
     token: string,
     body: AcceptInvitationDto,
   ) {
-    const inviteKey = `invite:${hashToken(token)}`;
+    const tokenHash = hashToken(token);
+    const inviteKey = `invite:${tokenHash}`;
     const cachedInvite = await this.cacheService.get(inviteKey);
     let tokenData: {
       invitationId: number;
@@ -235,9 +237,7 @@ export class InvitationService {
 
     if (!cachedInvite) {
       const invitation = await this.invitationRepository.findOne({
-        where: {
-          token,
-        },
+        where: { tokenHash },
         relations: ['organization'],
       });
       if (!invitation)

@@ -77,7 +77,7 @@ const mockInvitation: Partial<InvitationEntity> = {
   id: 1,
   email: 'invite@example.com',
   role: UserRole.MEMBER,
-  token: 'valid-token',
+  tokenHash: hashToken('valid-token'),
   status: InvitationStatus.PENDING,
   expiresAt: new Date(Date.now() + 172800000),
   organization: mockOrg,
@@ -270,6 +270,22 @@ describe('InvitationService', () => {
       const [key] = mockCacheService.set.mock.calls[0];
       expect(key).toBe(`invite:${hashToken(token)}`);
       expect(key).not.toContain(token);
+    });
+
+    it('should persist only the hash of the invite token', async () => {
+      mockUserService.getByEmail.mockResolvedValue(null);
+      mockInvitationRepository.findOne.mockResolvedValue(null);
+      mockInvitationRepository.create.mockReturnValue(mockInvitation);
+      mockInvitationRepository.save.mockResolvedValue(mockInvitation);
+      mockCacheService.set.mockResolvedValue(undefined);
+
+      await service.send(auditContext as any, userInfo, sendDto as any);
+
+      const { token } = mockEmailQueue.add.mock.calls[0][1];
+      const [saved] = mockInvitationRepository.create.mock.calls[0];
+      expect(saved.tokenHash).toBe(hashToken(token));
+      expect(Object.values(saved)).not.toContain(token);
+      expect(saved).not.toHaveProperty('token');
     });
 
     it('should handle a batch with mixed success and failure', async () => {
@@ -499,6 +515,11 @@ describe('InvitationService', () => {
         acceptDto as any,
       );
 
+      expect(mockInvitationRepository.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { tokenHash: hashToken('valid-token') },
+        }),
+      );
       expect(result).toEqual({
         accessToken: 'access-token',
         refreshToken: 'refresh-token',

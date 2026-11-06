@@ -6,6 +6,9 @@ import {
   uniqueEmail,
   sendInvitation,
 } from './helpers/fixtures';
+import { DataSource } from 'typeorm';
+import { CacheService } from '../src/cache/cache.service';
+import { hashToken } from '../src/common/utils/hash-token.util';
 import { InvitationStatus, UserRole } from '../src/enums';
 
 describe('Invitations (e2e)', () => {
@@ -68,6 +71,33 @@ describe('Invitations (e2e)', () => {
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('accessToken');
       expect(res.body).toHaveProperty('refreshToken');
+    });
+
+    it('stores only the token hash in the database', async () => {
+      const email = uniqueEmail('hashed');
+      const token = await sendInvitation(app, accessToken, email);
+
+      const rows = await app
+        .get(DataSource)
+        .query('SELECT * FROM invitations WHERE email = $1', [email]);
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0].token_hash).toBe(hashToken(token));
+      expect(JSON.stringify(rows[0])).not.toContain(token);
+    });
+
+    it('accepts via the database when the cached invite is gone', async () => {
+      const email = uniqueEmail('nocache');
+      const token = await sendInvitation(app, accessToken, email);
+      await app.get(CacheService).delete(`invite:${hashToken(token)}`);
+
+      const res = await request(server)
+        .post('/invitations/accept')
+        .query({ token })
+        .send({ password: 'Accept1234!' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('accessToken');
     });
   });
 });

@@ -418,7 +418,7 @@ Three global guards run in order: `JwtGuard` → `RolesGuard` → `JwtOnlyGuard`
 
 ## Security
 
-- **Tokens in Redis are hashed.** A Redis leak or backup does not expose usable credentials. Email jobs in the BullMQ queue still carry the raw token while queued; failed email jobs are kept for 24 hours at most.
+- **Tokens in Redis and Postgres are hashed.** A Redis or database leak or backup does not expose usable credentials (invitations keep only `invitations.token_hash`). Email jobs in the BullMQ queue still carry the raw token while queued; failed email jobs are kept for 24 hours at most.
 - **No account enumeration** on unauthenticated paths. Register answers the same for new and existing emails and emails the real owner instead. Login runs a dummy Argon2 verification for unknown emails so timing matches. Forgot-password, resend-verification, and change-email give generic answers. Known exceptions: `POST /invitations` says a blocked email "may already be registered with another organization", and small timing differences remain where a Redis write only happens for real accounts.
 - **Failed logins are audited** as `auth.login_failed` with a reason (`unknown_user`, `invalid_password`, `email_not_verified`, `account_deactivated`), IP, and user agent. The submitted email is never stored. These rows are hidden from `GET /audit-logs`.
 - **HTTP headers.** API responses get a strict Content-Security-Policy (`default-src 'none'`, no framing). Swagger UI gets Helmet's default policy so its assets load.
@@ -613,7 +613,6 @@ This is the single list of open work. Done items are described in the sections a
 
 **Security**
 
-- [ ] `invitations.token` is stored in plaintext in Postgres, and `acceptInvitation` falls back to it. Hash it (migration plus backfill)
 - [ ] Create tokens inside the email worker so the raw token never sits in queue job data (needs a `TokenService`)
 - [ ] Redis `AUTH`/TLS in `CacheService`, and ElastiCache at-rest encryption
 

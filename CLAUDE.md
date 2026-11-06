@@ -28,7 +28,7 @@ Guidance for Claude Code in this repository.
 ## Security rules
 
 - **Never pass a raw error or job data to a logger.** Nest prints an object's own properties, and an `AxiosError` carries `config` with URLs, signature headers, and bodies. Use `logError(this.logger, 'context', error)`. Opaque IDs (`orgId`, `userId`) are fine to log.
-- **Never put a raw token in a Redis key or value.** Use `hashToken(token)`. When you add a token flow, add its key to the README's Redis keys table.
+- **Never put a raw token in a Redis key or value, or in a database column.** Use `hashToken(token)` (invitations store it in `token_hash`). When you add a token flow, add its key to the README's Redis keys table.
 - **Do not reveal whether an email is registered** on unauthenticated paths: register, forgot-password, resend-verification, and change-email answer identically, and login does a dummy verification for unknown emails. Accepted exceptions are in the README (invitations message, residual timing). The constraint behind them is that one email maps to one organization.
 - **Failed logins** go through `auditLoginFailed` (`auth.login_failed`). Never store the submitted email: it is attacker-controlled and people paste passwords into that field. The `AUTH_` prefix is what keeps these rows out of `GET /audit-logs`.
 - Every `POST`, `PATCH`, and `DELETE` endpoint is `@JwtOnly()`. API keys are read-only by design, and their scopes are stored but not enforced.
@@ -54,11 +54,7 @@ Guidance for Claude Code in this repository.
 
 ## Testing notes
 
-The README's Testing & CI section covers how to run things. The e2e harness has gotchas worth knowing:
+The README's Testing & CI section covers how to run things and what each helper does. Two gotchas worth knowing:
 
-- `test/helpers/env.setup.ts` hardcodes the environment. `DB_SYNC=true` is intentional there, so no migrations run for e2e.
-- `test/helpers/app.setup.ts` stubs the email queue (it records jobs in `queuedEmails`), the AI provider, and Stripe, and seeds plans with fake `stripePriceId`s.
-- Tests read raw tokens from the recorded email jobs (`getEmailToken` in `fixtures.ts`), never from Redis, because Redis only holds hashes.
+- E2E builds its tables with `DB_SYNC=true` and never runs migrations, so it does not catch a broken migration or an entity change without one. Test a migration with `migration:run` and `migration:revert` against a scratch database.
 - `@nestjs/observe` is ESM-only, which Jest cannot load, so `test/jest-e2e.json` maps it to `test/helpers/observe.stub.ts`. Any other ESM-only dependency needs the same treatment.
-- `POST /auth/register` returns no IDs, so tests look the new user up by email.
-- Arguments after `yarn test:e2e` are not forwarded to jest; use the single-file recipe in the README.
