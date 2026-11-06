@@ -613,7 +613,6 @@ This is the single list of open work. Done items are described in the sections a
 
 **Security**
 
-- [ ] Registration still has a check-then-insert slug lookup. A collision inside the transaction surfaces as a raw database error; the fix is to retry the whole transaction with a suffixed slug (org rename already does this)
 - [ ] `invitations.token` is stored in plaintext in Postgres, and `acceptInvitation` falls back to it. Hash it (migration plus backfill)
 - [ ] Create tokens inside the email worker so the raw token never sits in queue job data (needs a `TokenService`)
 - [ ] Redis `AUTH`/TLS in `CacheService`, and ElastiCache at-rest encryption
