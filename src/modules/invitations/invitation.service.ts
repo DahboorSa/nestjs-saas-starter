@@ -298,7 +298,6 @@ export class InvitationService {
         : await this.userService.create({
             firstName: body.firstName,
             lastName: body.lastName,
-            userName: email?.split('@')[0],
             email,
             isVerified: true,
             passwordHash,

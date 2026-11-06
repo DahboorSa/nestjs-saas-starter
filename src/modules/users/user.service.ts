@@ -47,7 +47,6 @@ export class UserService {
       id: user.id,
       firstName: user.firstName ?? '',
       lastName: user.lastName ?? '',
-      userName: user.userName,
       role: user.role,
       email: user.email,
       isVerified: user.isVerified,

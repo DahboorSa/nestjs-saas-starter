@@ -172,7 +172,6 @@ export class AuthService {
           });
         const createdUser = await manager.getRepository(UserEntity).save({
           email,
-          userName: email.split('@')[0],
           firstName: body.firstName,
           lastName: body.lastName,
           passwordHash,

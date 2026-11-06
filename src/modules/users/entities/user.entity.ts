@@ -41,8 +41,6 @@ export class UserEntity {
   firstName: string;
   @Column({ nullable: true, name: 'last_name' })
   lastName: string;
-  @Column({ nullable: true, unique: true, name: 'user_name' })
-  userName: string;
 
   @OneToMany(() => AuditLogEntity, (auditLog) => auditLog.user)
   auditLogs: AuditLogEntity[];

@@ -45,6 +45,8 @@ describe('Users (e2e)', () => {
         .send({ firstName: 'Alice', lastName: 'Smith' });
 
       expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ firstName: 'Alice', lastName: 'Smith' });
+      expect(res.body).not.toHaveProperty('userName');
     });
   });
 

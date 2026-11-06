@@ -47,7 +47,6 @@ const mockUser: Partial<UserEntity> = {
   email: 'test@example.com',
   firstName: 'John',
   lastName: 'Doe',
-  userName: 'test',
   role: UserRole.MEMBER,
   isVerified: true,
   isActive: true,
@@ -164,6 +163,21 @@ describe('UserService', () => {
       } as any);
 
       expect(result).toMatchObject({ id: 'user-1', email: 'test@example.com' });
+    });
+
+    it('should return empty strings for a user without a name', async () => {
+      mockUserRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        firstName: null,
+        lastName: null,
+      });
+
+      const result = await service.getDetails({
+        userId: 'user-1',
+        orgId: 'org-1',
+      } as any);
+
+      expect(result).toMatchObject({ firstName: '', lastName: '' });
     });
 
     it('should return null if user not found', async () => {

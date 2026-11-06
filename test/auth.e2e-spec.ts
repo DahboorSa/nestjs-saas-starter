@@ -5,6 +5,7 @@ import {
   registerAndVerify,
   uniqueEmail,
   getResetPasswordToken,
+  getUserIdsByEmail,
   getVerifyEmailToken,
 } from './helpers/fixtures';
 import { CacheService } from '../src/cache/cache.service';
@@ -35,6 +36,24 @@ describe('Auth (e2e)', () => {
 
       expect(res.status).toBe(201);
       expect(Object.keys(res.body)).toEqual(['message']);
+    });
+
+    it('registers two users who share an email local part and an org name', async () => {
+      const local = `shared${Date.now()}`;
+      const body = { password: 'Test1234!', name: `Same Org ${Date.now()}` };
+      const emails = [`${local}@one.example.com`, `${local}@two.example.com`];
+
+      for (const email of emails) {
+        const res = await request(server)
+          .post('/auth/register')
+          .send({ email, ...body });
+        expect(res.status).toBe(201);
+      }
+
+      const [a, b] = await Promise.all(
+        emails.map((email) => getUserIdsByEmail(app, email)),
+      );
+      expect(a.orgId).not.toBe(b.orgId);
     });
 
     it('answers an already-registered email exactly like a new one', async () => {
