@@ -43,7 +43,7 @@ Guidance for Claude Code in this repository.
 - Every plan needs a `stripePriceId`; `BillingService` and `OrganizationService.updatePlan()` throw without one. A plan limit of `-1` means unlimited.
 - Webhook delivery writes one row per event: `createPending()` once, then `recordAttempt()` on each attempt, with the row id stored on the job via `updateData`.
 - The trial-expiry scheduler cancels before it suspends, so an org suspended in the same run keeps its grace period. Each phase is idempotent and wrapped in try/catch, so the next run retries failures.
-- Revoking an API key deletes `apikey:valid:<hash>`. Any future scope-update path must do the same.
+- Revoking an API key deletes `apikey:valid:<hash>`. The strategy refills that entry on a database hit and trusts it until `API_KEY_EXPIRATION` lapses (only `expiresAt` is re-checked), so any future scope or expiry update path must delete it too.
 
 ## Database and migrations
 

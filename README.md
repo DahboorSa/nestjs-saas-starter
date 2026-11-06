@@ -155,7 +155,7 @@ Copy `.env.example` to `.env`. The app **fails at startup** when a required vari
 | `TTL_EXPIRATION`         | Email-verify / password-reset / email-change token TTL (seconds)               | `86400`                 |
 | `INVITE_TOKEN_TTL`       | Invitation token TTL (seconds)                                                 | `172800`                |
 | `API_KEY_PREFIX`         | Required prefix of API keys                                                    | `sk_live_`              |
-| `API_KEY_EXPIRATION`     | API key lookup cache TTL (seconds)                                             | `300`                   |
+| `API_KEY_EXPIRATION`     | API key lookup cache TTL (seconds). Keep it short: edits wait for it           | `300`                   |
 | `THROTTLER_TTL`          | Rate-limit window (ms)                                                         | `60000`                 |
 | `THROTTLER_LIMIT`        | Max requests per window                                                        | `600`                   |
 | `THROTTLER_AUTH_LIMIT`   | Max requests per window on auth routes                                         | `100`                   |
@@ -315,7 +315,7 @@ flowchart TD
 | Method | Endpoint        | Access                | Description    |
 | ------ | --------------- | --------------------- | -------------- |
 | GET    | `/api-keys`     | Owner/Admin           | List API keys  |
-| POST   | `/api-keys`     | JWT only, Owner/Admin | Create API key |
+| POST   | `/api-keys`     | JWT only, Owner/Admin | Create API key (optional `expiresAt`, a future date) |
 | DELETE | `/api-keys/:id` | JWT only, Owner/Admin | Revoke API key |
 
 #### Webhooks — `/webhooks`
@@ -357,7 +357,7 @@ flowchart TD
 Two parallel strategies, both sent as `Authorization: Bearer <token>`:
 
 - **JWT** — standard access token.
-- **API key** — org-scoped. The key must start with `API_KEY_PREFIX`; it is SHA-256 hashed, looked up in Redis (`apikey:valid:<hash>`), then in the database. API keys are **read-only by design**: every `POST`, `PATCH`, and `DELETE` endpoint is `@JwtOnly()`. Scopes are stored but not enforced yet.
+- **API key** — org-scoped. The key must start with `API_KEY_PREFIX`; it is SHA-256 hashed, looked up in Redis (`apikey:valid:<hash>`, filled on first use and cleared when the key is revoked), then in the database. `expiresAt` is checked on both paths, and `last_used_at` is written at most once a minute. API keys are **read-only by design**: every `POST`, `PATCH`, and `DELETE` endpoint is `@JwtOnly()`. Scopes are stored but not enforced yet.
 
 Three global guards run in order: `JwtGuard` → `RolesGuard` → `JwtOnlyGuard`.
 
@@ -409,6 +409,7 @@ Three global guards run in order: `JwtGuard` → `RolesGuard` → `JwtOnlyGuard`
 | `invite:<hash>`         | Invitation tokens                           |
 | `change:email:<hash>`   | Email change confirmation tokens            |
 | `apikey:valid:<hash>`   | API key lookup cache                        |
+| `apikey:used:<id>`      | Limits `last_used_at` writes to one a minute |
 | `usage:*:api_calls:*`   | Usage counters                              |
 
 `<hash>` is `hashToken(token)`, a SHA-256 hex digest (`src/common/utils/hash-token.util.ts`). The raw token only exists in the email link, the refresh cookie, or the `Authorization` header, and is re-hashed on lookup.
@@ -616,7 +617,6 @@ This is the single list of open work. Done items are described in the sections a
 - [ ] `invitations.token` is stored in plaintext in Postgres, and `acceptInvitation` falls back to it. Hash it (migration plus backfill)
 - [ ] Create tokens inside the email worker so the raw token never sits in queue job data (needs a `TokenService`)
 - [ ] Redis `AUTH`/TLS in `CacheService`, and ElastiCache at-rest encryption
-- [ ] The Redis-cached API key path does not re-check `expiresAt`
 
 **Performance and reliability**
 

@@ -61,6 +61,23 @@ describe('CacheService', () => {
     });
   });
 
+  describe('setIfAbsent', () => {
+    it('should return true when the key was created', async () => {
+      mockRedis.set.mockResolvedValue('OK');
+
+      const result = await service.setIfAbsent('key', '1', 60);
+
+      expect(result).toBe(true);
+      expect(mockRedis.set).toHaveBeenCalledWith('key', '1', 'EX', 60, 'NX');
+    });
+
+    it('should return false when the key already exists', async () => {
+      mockRedis.set.mockResolvedValue(null);
+
+      expect(await service.setIfAbsent('key', '1', 60)).toBe(false);
+    });
+  });
+
   describe('get', () => {
     it('should return the value for a key', async () => {
       mockRedis.get.mockResolvedValue('stored-value');

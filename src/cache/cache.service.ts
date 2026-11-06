@@ -21,6 +21,12 @@ export class CacheService {
     return this.redis.get(key);
   }
 
+  // True only for the caller that created the key, so a burst of requests
+  // lets exactly one of them through.
+  async setIfAbsent(key: string, value: string, ttl: number): Promise<boolean> {
+    return (await this.redis.set(key, value, 'EX', ttl, 'NX')) === 'OK';
+  }
+
   async delete(key: string) {
     return this.redis.del(key);
   }

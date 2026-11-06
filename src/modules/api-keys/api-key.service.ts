@@ -32,7 +32,20 @@ export interface ApiKeyResponse extends Partial<ApiKeyEntity> {
   isActive: boolean;
   createdAt: Date;
   lastUsedAt: Date | null;
+  expiresAt: Date | null;
   orgId: string;
+}
+
+// last_used_at is informational, so one write a minute per key is enough.
+const LAST_USED_THROTTLE_SECONDS = 60;
+
+export const apiKeyCacheKey = (hash: string) => `apikey:valid:${hash}`;
+
+export interface CachedApiKey {
+  id: number;
+  orgId: string;
+  scopes: string[];
+  expiresAt: Date | string | null;
 }
 
 @Injectable()
@@ -85,12 +98,37 @@ export class ApiKeyService {
       isActive: key.isActive,
       createdAt: key.createdAt,
       lastUsedAt: key.lastUsedAt,
+      expiresAt: key.expiresAt,
       orgId: key.organization?.id,
     };
   }
 
   async updateLastUsed(id: number): Promise<void> {
     await this.apiKeyRepository.update(id, { lastUsedAt: new Date() });
+  }
+
+  // Fire-and-forget: never fails or slows the request.
+  markUsed(id: number): void {
+    this.cacheService
+      .setIfAbsent(`apikey:used:${id}`, '1', LAST_USED_THROTTLE_SECONDS)
+      .then(async (first) => {
+        if (first) await this.updateLastUsed(id);
+      })
+      .catch((error) => {
+        logError(
+          this.logger,
+          `Error updating last use of API key ${id}`,
+          error,
+        );
+      });
+  }
+
+  async cacheValidKey(hash: string, entry: CachedApiKey): Promise<void> {
+    await this.cacheService.set(
+      apiKeyCacheKey(hash),
+      JSON.stringify(entry),
+      +this.configService.get('API_KEY_EXPIRATION'),
+    );
   }
 
   hashKey(key: string): string {
@@ -149,15 +187,12 @@ export class ApiKeyService {
     };
     const apiKeyInfo = await this.apiKeyRepository.create(payload);
     await this.apiKeyRepository.save(apiKeyInfo);
-    await this.cacheService.set(
-      `apikey:valid:${hashedApiKey}`,
-      JSON.stringify({
-        ...body,
-        id: apiKeyInfo.id,
-        orgId: organization.id,
-      }),
-      +this.configService.get('API_KEY_EXPIRATION'),
-    );
+    await this.cacheValidKey(hashedApiKey, {
+      id: apiKeyInfo.id,
+      orgId: organization.id,
+      scopes: body.scopes,
+      expiresAt: body.expiresAt ?? null,
+    });
     this.auditAndDispatch(
       auditContext,
       AuditAction.API_KEY_CREATED,
@@ -195,7 +230,7 @@ export class ApiKeyService {
 
     const keyUpdated = await this.apiKeyRepository.save(apiKey);
     const hashedApiKey = keyUpdated.keyHash;
-    await this.cacheService.delete(`apikey:valid:${hashedApiKey}`);
+    await this.cacheService.delete(apiKeyCacheKey(hashedApiKey));
     this.auditAndDispatch(
       auditContext,
       AuditAction.API_KEY_REVOKED,

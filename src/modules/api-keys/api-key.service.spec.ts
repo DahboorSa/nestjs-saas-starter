@@ -17,6 +17,7 @@ const mockApiKeyRepository = {
   save: jest.fn(),
   merge: jest.fn(),
   count: jest.fn(),
+  update: jest.fn(),
 };
 
 const mockOrganizationService = {
@@ -24,7 +25,12 @@ const mockOrganizationService = {
   getDetails: jest.fn(),
 };
 
-const mockCacheService = { get: jest.fn(), set: jest.fn(), delete: jest.fn() };
+const mockCacheService = {
+  get: jest.fn(),
+  set: jest.fn(),
+  delete: jest.fn(),
+  setIfAbsent: jest.fn(),
+};
 const mockConfigService = {
   get: jest.fn().mockImplementation((key: string) => {
     if (key === 'API_KEY_PREFIX') return 'sk_live_';
@@ -115,6 +121,77 @@ describe('ApiKeyService', () => {
       const result = await service.getByHash('hash-123');
 
       expect(result).toMatchObject({ id: 1, name: 'Test Key' });
+    });
+
+    it('should include expiresAt so the auth strategy can enforce it', async () => {
+      const expiresAt = new Date(Date.now() + 86400000);
+      mockApiKeyRepository.findOne.mockResolvedValue({
+        ...mockApiKey,
+        expiresAt,
+      });
+
+      const result = await service.getByHash('hash-123');
+
+      expect(result?.expiresAt).toEqual(expiresAt);
+    });
+  });
+
+  describe('markUsed', () => {
+    const flush = () => new Promise((resolve) => setImmediate(resolve));
+
+    it('should write last_used_at for the first request in the window', async () => {
+      mockCacheService.setIfAbsent.mockResolvedValue(true);
+      mockApiKeyRepository.update.mockResolvedValue(undefined);
+
+      service.markUsed(1);
+      await flush();
+
+      expect(mockCacheService.setIfAbsent).toHaveBeenCalledWith(
+        'apikey:used:1',
+        '1',
+        60,
+      );
+      expect(mockApiKeyRepository.update).toHaveBeenCalledWith(1, {
+        lastUsedAt: expect.any(Date),
+      });
+    });
+
+    it('should skip the write for later requests in the same window', async () => {
+      mockCacheService.setIfAbsent.mockResolvedValue(false);
+
+      service.markUsed(1);
+      await flush();
+
+      expect(mockApiKeyRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('should swallow errors so a request never fails over it', async () => {
+      mockCacheService.setIfAbsent.mockRejectedValue(new Error('redis down'));
+
+      expect(() => service.markUsed(1)).not.toThrow();
+      await flush();
+
+      expect(mockApiKeyRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cacheValidKey', () => {
+    it('should store the entry under the hash with the configured TTL', async () => {
+      mockCacheService.set.mockResolvedValue(undefined);
+      const entry = {
+        id: 1,
+        orgId: 'org-1',
+        scopes: ['read'],
+        expiresAt: null,
+      };
+
+      await service.cacheValidKey('abc', entry);
+
+      expect(mockCacheService.set).toHaveBeenCalledWith(
+        'apikey:valid:abc',
+        JSON.stringify(entry),
+        300,
+      );
     });
   });
 
@@ -209,6 +286,60 @@ describe('ApiKeyService', () => {
         'Save this key — it will never be shown again !!',
       );
       expect(result.apiKey).toMatch(/^sk_live_/);
+    });
+
+    it('should store the requested expiry and cache it for the auth strategy', async () => {
+      const expiresAt = new Date(Date.now() + 86400000);
+      mockOrganizationService.getDetails.mockResolvedValue(mockOrg);
+      mockApiKeyRepository.count.mockResolvedValue(1);
+      mockApiKeyRepository.create.mockReturnValue({ ...mockApiKey });
+      mockApiKeyRepository.save.mockResolvedValue({ ...mockApiKey });
+      mockCacheService.set.mockResolvedValue(undefined);
+
+      const result = await service.create(auditContext as any, userInfo, {
+        ...createDto,
+        expiresAt,
+      } as any);
+
+      expect(mockApiKeyRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ expiresAt }),
+      );
+      const cachedValue = JSON.parse(mockCacheService.set.mock.calls[0][1]);
+      expect(cachedValue.expiresAt).toBe(expiresAt.toISOString());
+      expect(result.expiresAt).toEqual(expiresAt);
+    });
+
+    it('should leave the expiry unset when none is requested', async () => {
+      mockOrganizationService.getDetails.mockResolvedValue(mockOrg);
+      mockApiKeyRepository.count.mockResolvedValue(1);
+      mockApiKeyRepository.create.mockReturnValue({ ...mockApiKey });
+      mockApiKeyRepository.save.mockResolvedValue({ ...mockApiKey });
+      mockCacheService.set.mockResolvedValue(undefined);
+
+      await service.create(auditContext as any, userInfo, createDto as any);
+
+      const cachedValue = JSON.parse(mockCacheService.set.mock.calls[0][1]);
+      expect(cachedValue.expiresAt).toBeNull();
+    });
+
+    it('should cache only what the auth strategy needs', async () => {
+      mockOrganizationService.getDetails.mockResolvedValue(mockOrg);
+      mockApiKeyRepository.count.mockResolvedValue(1);
+      mockApiKeyRepository.create.mockReturnValue({ ...mockApiKey, id: 7 });
+      mockApiKeyRepository.save.mockResolvedValue({ ...mockApiKey });
+      mockCacheService.set.mockResolvedValue(undefined);
+
+      await service.create(auditContext as any, userInfo, createDto as any);
+
+      const [key, value, ttl] = mockCacheService.set.mock.calls[0];
+      expect(key).toMatch(/^apikey:valid:[0-9a-f]{64}$/);
+      expect(Object.keys(JSON.parse(value)).sort()).toEqual([
+        'expiresAt',
+        'id',
+        'orgId',
+        'scopes',
+      ]);
+      expect(ttl).toBe(300);
     });
 
     it('should not enforce limit if maxApiKeys is -1 (unlimited)', async () => {
